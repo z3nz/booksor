@@ -42,6 +42,8 @@ A free, fast, beautiful Bible site at **booksor.com**.
 ## Phase 3 — The book experience
 
 - [ ] **L** Desktop book view with page-flip animations (plain reader stays as fallback; respects reduced-motion)
+- [x] **M** Cross-translation search: a quote in any hosted translation's wording finds the verse
+- [ ] **S–M** Phrase matching across translations (short quotes like "love is patient" rank 4th in KJV today)
 - [ ] **M–L** Search by meaning ("I feel alone" finds verses without those exact words) — Workers AI + Vectorize free tiers
 - [ ] **S–M** Cross-references: verses related to the one you're reading (OpenBible.info, ~340k links)
 - [ ] **S** Side-by-side translations

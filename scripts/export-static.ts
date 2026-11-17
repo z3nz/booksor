@@ -6,6 +6,7 @@ import votd from '../data/votd.json' with { type: 'json' };
 import { bookIndex } from '../src/lib/books.ts';
 import { getAllVerses, getVerses } from '../src/lib/db.ts';
 import { formatReference, parseReference } from '../src/lib/reference.ts';
+import { combineWords, verseKey } from '../src/lib/search.ts';
 import { plainText } from '../src/lib/text.ts';
 import { TRANSLATIONS } from '../src/lib/translations.ts';
 import type { SearchRow } from '../src/lib/types.ts';
@@ -47,4 +48,25 @@ for (const t of TRANSLATIONS) {
   writeFileSync(join(PUBLIC, 'votd', `${t.id}.json`), JSON.stringify(days));
   console.log(`✓ votd/${t.id}.json — ${days.length} verses`);
 }
+// One combined search file per language: each verse's distinct words across every translation,
+// so a quote in any translation's wording finds the verse.
+const byLanguage = Map.groupBy(TRANSLATIONS, (t) => t.language);
+for (const [lang, trs] of byLanguage) {
+  const texts = new Map<string, { b: number; c: number; v: number; texts: string[] }>();
+  for (const t of trs) {
+    for (const r of getAllVerses(t.id)) {
+      const key = verseKey(r.book, r.chapter, r.verse);
+      let entry = texts.get(key);
+      if (!entry) texts.set(key, (entry = { b: r.book, c: r.chapter, v: r.verse, texts: [] }));
+      entry.texts.push(plainText(r.text, t.suppliedWords));
+    }
+  }
+  const rows: SearchRow[] = [...texts.values()]
+    .sort((x, y) => x.b - y.b || x.c - y.c || x.v - y.v)
+    .map((e) => [e.b, e.c, e.v, combineWords(e.texts)]);
+  const json = JSON.stringify(rows);
+  writeFileSync(join(PUBLIC, 'search', `words-${lang}.json`), json);
+  console.log(`✓ search/words-${lang}.json — ${rows.length.toLocaleString()} verses from ${trs.map((t) => t.abbr).join(', ')}, ${(json.length / 1e6).toFixed(1)} MB`);
+}
+
 if (problems) process.exit(1);

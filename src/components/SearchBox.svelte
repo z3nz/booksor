@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { BOOKS, bookIndex, chapterUrl } from '../lib/books.ts';
   import { formatReference, parseReference } from '../lib/reference.ts';
-  import { escapeHtml } from '../lib/text.ts';
+  import { highlight } from '../lib/terms.ts';
   import { preferredTranslation, TRANSLATION_EVENT } from '../lib/prefs.ts';
   import { translationById } from '../lib/translations.ts';
   import type { SearchHit, SearchRequest, SearchResponse } from '../lib/search.worker.ts';
@@ -147,13 +147,6 @@
     if (variant === 'compact' && open && !root.contains(e.target as Node)) open = false;
   }
 
-  function highlight(text: string, terms: string[]): string {
-    const html = escapeHtml(text);
-    if (!terms.length) return html;
-    const pattern = terms.map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
-    return html.replace(new RegExp(`(?<![\\p{L}\\p{N}])(${pattern})(?![\\p{L}\\p{N}])`, 'giu'), '<mark>$1</mark>');
-  }
-
   const showPanel = $derived(variant === 'hero' ? q.trim().length > 0 : open && q.trim().length > 0);
 </script>
 
@@ -222,7 +215,10 @@
               aria-selected={active === idx}
               onmouseenter={() => (active = idx)}
             >
-              <span class="title">{BOOKS[h.b].name} {h.c}:{h.v}</span>
+              <span class="title">
+                {BOOKS[h.b].name} {h.c}:{h.v}
+                {#if h.otherWording}<span class="other" title="Your words matched how another translation phrases this verse">matched another translation</span>{/if}
+              </span>
               <span class="text reading">{@html highlight(h.t, h.terms)}</span>
             </a>
           {/each}
@@ -353,6 +349,15 @@
   }
   .ref .title {
     font-size: 17px;
+  }
+  .other {
+    margin-left: 6px;
+    padding: 1px 7px;
+    border-radius: 999px;
+    background: var(--surface-2);
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 500;
   }
   .tr {
     margin-left: 4px;

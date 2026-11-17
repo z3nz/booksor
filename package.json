@@ -11,7 +11,8 @@
     "test": "vitest run",
     "data": "node scripts/fetch-sources.ts && node scripts/build-db.ts && node scripts/export-static.ts",
     "deploy": "astro build && wrangler deploy",
-    "deploy:www": "wrangler deploy --config workers/www-redirect/wrangler.jsonc"
+    "deploy:www": "wrangler deploy --config workers/www-redirect/wrangler.jsonc",
+    "ci:build": "pnpm data && pnpm test && pnpm build"
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.7.5",
@@ -25,8 +26,13 @@
   "devDependencies": {
     "@astrojs/check": "^0.9.12",
     "@types/node": "^26.6.6",
+    "fflate": "^0.8.3",
     "typescript": "^6.0.3",
     "vitest": "^5.1.0",
     "wrangler": "^4.163.0"
+  },
+  "packageManager": "pnpm@12.11.2",
+  "engines": {
+    "node": ">=24"
   }
 }

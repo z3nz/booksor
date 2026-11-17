@@ -1,0 +1,145 @@
+---
+import Base from '../layouts/Base.astro';
+import SearchBox from '../components/SearchBox.svelte';
+import VerseOfTheDay from '../components/VerseOfTheDay.svelte';
+import { BOOKS, bookBySlug, chapterUrl } from '../lib/books.ts';
+import { DEFAULT_TRANSLATION } from '../lib/translations.ts';
+
+const popular: [string, number][] = [
+  ['genesis', 1],
+  ['psalms', 23],
+  ['isaiah', 53],
+  ['matthew', 5],
+  ['john', 3],
+  ['romans', 8],
+  ['1-corinthians', 13],
+  ['revelation', 21],
+];
+const testaments = [
+  { id: 'OT', label: 'Old Testament' },
+  { id: 'NT', label: 'New Testament' },
+] as const;
+// Links point at the default translation; the script below swaps in the reader's saved one.
+const href = (slug: string, chapter = 1) => chapterUrl(DEFAULT_TRANSLATION, bookBySlug.get(slug)!, chapter);
+---
+
+<Base
+  title="Booksor – Read, search and share the Bible"
+  description="A free, fast and beautiful Bible. Search every verse as you type, switch translations, and share verses. KJV, WEB and BSB."
+  showSearch={false}
+>
+  <section class="hero container">
+    <h1>Read the Bible,<br /><em>beautifully.</em></h1>
+    <p class="lead">Search every verse as you type, jump straight to any passage, and share what speaks to you.</p>
+    <div class="hero-search">
+      <SearchBox client:load variant="hero" />
+    </div>
+    <div class="popular" aria-label="Popular chapters">
+      {
+        popular.map(([slug, ch]) => (
+          <a class="btn" href={href(slug, ch)} data-tr-link>
+            {bookBySlug.get(slug)!.name} {ch}
+          </a>
+        ))
+      }
+    </div>
+  </section>
+
+  <div class="container narrow">
+    <VerseOfTheDay client:load />
+  </div>
+
+  <section class="container books-section" aria-labelledby="books-heading">
+    <h2 id="books-heading" class="visually-hidden">Books of the Bible</h2>
+    {
+      testaments.map((t) => (
+        <div class="testament">
+          <h3 class="eyebrow">{t.label}</h3>
+          <div class="books">
+            {BOOKS.filter((b) => b.testament === t.id).map((b) => (
+              <a href={href(b.slug)} data-tr-link>
+                {b.name}
+              </a>
+            ))}
+          </div>
+        </div>
+      ))
+    }
+  </section>
+</Base>
+
+<script>
+  import { preferredTranslation, TRANSLATION_EVENT } from '../lib/prefs.ts';
+
+  function retarget(tr: string) {
+    for (const a of document.querySelectorAll<HTMLAnchorElement>('a[data-tr-link]')) {
+      a.pathname = a.pathname.replace(/^\/[^/]+/, `/${tr}`);
+    }
+  }
+  retarget(preferredTranslation());
+  window.addEventListener(TRANSLATION_EVENT, (e) => retarget((e as CustomEvent<string>).detail));
+</script>
+
+<style>
+  .hero {
+    max-width: 760px;
+    padding-top: clamp(40px, 9vw, 96px);
+    padding-bottom: 28px;
+    text-align: center;
+  }
+  h1 {
+    margin: 0;
+    font-family: var(--font-reading);
+    font-size: clamp(38px, 7.5vw, 64px);
+    font-weight: 600;
+    line-height: 1.08;
+    letter-spacing: -0.02em;
+  }
+  h1 em {
+    color: var(--accent);
+    font-weight: 500;
+  }
+  .lead {
+    max-width: 520px;
+    margin: 18px auto 28px;
+    color: var(--muted);
+    font-size: 18px;
+  }
+  .popular {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 20px;
+  }
+  .popular .btn {
+    min-height: 34px;
+    font-size: 13px;
+  }
+  .narrow {
+    max-width: 760px;
+  }
+  .books-section {
+    max-width: 1000px;
+    margin-top: 48px;
+  }
+  .testament + .testament {
+    margin-top: 28px;
+  }
+  .books {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 4px 12px;
+    margin-top: 10px;
+  }
+  .books a {
+    padding: 6px 8px;
+    margin: 0 -8px;
+    border-radius: 8px;
+    color: var(--text);
+    text-decoration: none;
+  }
+  .books a:hover {
+    background: var(--surface-2);
+  }
+</style>

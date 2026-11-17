@@ -1,0 +1,91 @@
+---
+import Base from '../layouts/Base.astro';
+import { TRANSLATIONS } from '../lib/translations.ts';
+---
+
+<Base title="About & licenses – Booksor" description="About Booksor, a free Bible website, and the licenses of the translations it uses.">
+  <div class="container page">
+    <h1>About Booksor</h1>
+    <p>
+      Booksor is a free, fast Bible for everyone. There are no ads, no accounts and no tracking. Your reading settings
+      are saved only on your own device.
+    </p>
+    <p>
+      Search runs entirely in your browser, so results appear as you type. Every chapter has its own link, and you can
+      tap any verse to copy, share, or turn it into an image.
+    </p>
+
+    <h2>Translations &amp; licenses</h2>
+    <p>Booksor only hosts translations that are in the public domain or openly licensed.</p>
+    <ul class="translations">
+      {
+        TRANSLATIONS.map((t) => (
+          <li>
+            <a href={`/${t.id}`}>
+              <strong>{t.name}</strong> ({t.abbr})
+            </a>
+            <span class="license">{t.license}</span>
+            <p>{t.attribution}</p>
+          </li>
+        ))
+      }
+    </ul>
+    <p>
+      Texts come from <a href="https://ebible.org/" rel="noopener">eBible.org</a>. In the King James Version, words the
+      translators added for readability are shown in <em>italics</em>.
+    </p>
+
+    <h2>Coming next</h2>
+    <p>
+      More languages and translations, an "I'm struggling with…" topic search, a read-aloud mode, bookmarks and
+      highlights, and a book-style reading view with page turns.
+    </p>
+  </div>
+</Base>
+
+<style>
+  .page {
+    max-width: 720px;
+    padding-top: 32px;
+    font-size: 17px;
+  }
+  h1,
+  h2 {
+    font-family: var(--font-reading);
+  }
+  h1 {
+    font-size: clamp(30px, 5vw, 40px);
+  }
+  h2 {
+    margin-top: 36px;
+  }
+  .translations {
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 12px;
+  }
+  .translations li {
+    padding: 14px 16px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+  }
+  .translations a {
+    color: var(--text);
+    text-decoration: none;
+  }
+  .license {
+    margin-left: 8px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--surface-2);
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .translations p {
+    margin: 6px 0 0;
+    color: var(--muted);
+    font-size: 14px;
+  }
+</style>

@@ -1,0 +1,10 @@
+{
+  // Tiny Worker that redirects www.booksor.com to booksor.com.
+  // Deploy with: pnpm run deploy:www
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "booksor-www-redirect",
+  "main": "index.js",
+  "compatibility_date": "2026-11-01",
+  "workers_dev": false,
+  "routes": [{ "pattern": "www.booksor.com", "custom_domain": true }]
+}

@@ -1,0 +1,117 @@
+---
+import type { GetStaticPaths } from 'astro';
+import Base from '../../layouts/Base.astro';
+import { BOOKS, chapterUrl } from '../../lib/books.ts';
+import { TRANSLATIONS } from '../../lib/translations.ts';
+import type { Translation } from '../../lib/types.ts';
+
+export const getStaticPaths = (() => TRANSLATIONS.map((t) => ({ params: { tr: t.id }, props: { t } }))) satisfies GetStaticPaths;
+
+interface Props {
+  t: Translation;
+}
+const { t } = Astro.props;
+const testaments = [
+  { id: 'OT', label: 'Old Testament' },
+  { id: 'NT', label: 'New Testament' },
+] as const;
+---
+
+<Base
+  title={`${t.name} (${t.abbr}) – Read online – Booksor`}
+  description={`Read the ${t.name} (${t.abbr}) online, free. All 66 books, searchable, with verse sharing.`}
+  translation={t.id}
+>
+  <div class="container page">
+    <p class="eyebrow">{t.license}</p>
+    <h1>{t.name}</h1>
+    {
+      testaments.map((testament) => (
+        <section>
+          <h2 class="eyebrow">{testament.label}</h2>
+          <div class="books">
+            {BOOKS.filter((b) => b.testament === testament.id).map((b) => (
+              <details>
+                <summary>
+                  <span>{b.name}</span>
+                  <span class="count">{b.chapters}</span>
+                </summary>
+                <div class="chapters">
+                  {Array.from({ length: b.chapters }, (_, i) => (
+                    <a href={chapterUrl(t.id, b, i + 1)}>{i + 1}</a>
+                  ))}
+                </div>
+              </details>
+            ))}
+          </div>
+        </section>
+      ))
+    }
+    <p class="attribution">{t.attribution}</p>
+  </div>
+</Base>
+
+<style>
+  .page {
+    max-width: 900px;
+    padding-top: 32px;
+  }
+  h1 {
+    margin: 4px 0 24px;
+    font-family: var(--font-reading);
+    font-size: clamp(30px, 5vw, 42px);
+  }
+  section {
+    margin-bottom: 28px;
+  }
+  .books {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 8px;
+    margin-top: 10px;
+    align-items: start;
+  }
+  details {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+  }
+  summary {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 14px;
+    cursor: pointer;
+    font-weight: 500;
+    list-style: none;
+  }
+  summary::-webkit-details-marker {
+    display: none;
+  }
+  .count {
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .chapters {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+    gap: 4px;
+    padding: 0 10px 10px;
+  }
+  .chapters a {
+    display: grid;
+    place-items: center;
+    height: 36px;
+    border-radius: 6px;
+    background: var(--surface-2);
+    color: var(--text);
+    font-size: 14px;
+    text-decoration: none;
+  }
+  .chapters a:hover {
+    background: color-mix(in srgb, var(--accent) 14%, var(--surface-2));
+  }
+  .attribution {
+    color: var(--muted);
+    font-size: 13px;
+  }
+</style>

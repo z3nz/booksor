@@ -1,0 +1,12 @@
+{
+  // Static-only Worker: Cloudflare serves the files in ./dist for free.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "booksor",
+  "compatibility_date": "2026-11-01",
+  "assets": {
+    "directory": "./dist",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page"
+  },
+  "routes": [{ "pattern": "booksor.com", "custom_domain": true }]
+}

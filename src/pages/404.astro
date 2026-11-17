@@ -1,0 +1,23 @@
+---
+import Base from '../layouts/Base.astro';
+---
+
+<Base title="Page not found – Booksor" description="This page doesn't exist.">
+  <div class="container page">
+    <p class="eyebrow">404</p>
+    <h1>This page wasn’t found.</h1>
+    <p>“Seek, and ye shall find.” Try searching above, or go back to the <a href="/">home page</a>.</p>
+  </div>
+</Base>
+
+<style>
+  .page {
+    max-width: 640px;
+    padding-top: 64px;
+    text-align: center;
+  }
+  h1 {
+    font-family: var(--font-reading);
+    font-size: clamp(28px, 5vw, 40px);
+  }
+</style>

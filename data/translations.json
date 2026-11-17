@@ -1,0 +1,39 @@
+[
+  {
+    "id": "kjv",
+    "abbr": "KJV",
+    "name": "King James Version",
+    "language": "en",
+    "languageName": "English",
+    "dir": "ltr",
+    "source": "eng-kjv2006",
+    "sourceUrl": "https://ebible.org/Scriptures/eng-kjv2006_vpl.zip",
+    "license": "Public Domain",
+    "attribution": "King James Version (1769 standardized text), public domain. Text from eBible.org.",
+    "suppliedWords": true
+  },
+  {
+    "id": "web",
+    "abbr": "WEB",
+    "name": "World English Bible",
+    "language": "en",
+    "languageName": "English",
+    "dir": "ltr",
+    "source": "eng-web",
+    "sourceUrl": "https://ebible.org/Scriptures/eng-web_vpl.zip",
+    "license": "Public Domain",
+    "attribution": "World English Bible, public domain. \"World English Bible\" is a trademark of eBible.org. Text from eBible.org."
+  },
+  {
+    "id": "bsb",
+    "abbr": "BSB",
+    "name": "Berean Standard Bible",
+    "language": "en",
+    "languageName": "English",
+    "dir": "ltr",
+    "source": "engbsb",
+    "sourceUrl": "https://ebible.org/Scriptures/engbsb_vpl.zip",
+    "license": "Public Domain",
+    "attribution": "The Holy Bible, Berean Standard Bible (BSB), public domain. Contributor: BSB Publishing, LLC. Text from eBible.org."
+  }
+]

@@ -1,0 +1,192 @@
+---
+import type { GetStaticPaths } from 'astro';
+import Base from '../../../layouts/Base.astro';
+import ChapterPicker from '../../../components/ChapterPicker.svelte';
+import ShareVerse from '../../../components/ShareVerse.svelte';
+import { BOOKS, adjacentChapter, chapterUrl } from '../../../lib/books.ts';
+import { getChapter } from '../../../lib/db.ts';
+import { plainText, verseHtml } from '../../../lib/text.ts';
+import { TRANSLATIONS } from '../../../lib/translations.ts';
+import type { Translation, Verse } from '../../../lib/types.ts';
+
+export const getStaticPaths = (() =>
+  TRANSLATIONS.flatMap((t) =>
+    BOOKS.flatMap((book, bookIdx) =>
+      Array.from({ length: book.chapters }, (_, i) => ({
+        params: { tr: t.id, book: book.slug, chapter: String(i + 1) },
+        props: { t, bookIdx },
+      })),
+    ),
+  )) satisfies GetStaticPaths;
+
+interface Props {
+  t: Translation;
+  bookIdx: number;
+}
+
+const { t, bookIdx } = Astro.props;
+const book = BOOKS[bookIdx];
+const chapter = Number(Astro.params.chapter);
+const verses = getChapter(t.id, bookIdx, chapter);
+
+// Flow verses into paragraphs when the translation marks them; otherwise (and for poetry) one verse per line.
+const poetry = ['PSA', 'PRO'].includes(book.code);
+const flow = !poetry && verses.some((v) => v.p);
+const groups: Verse[][] = [];
+for (const v of verses) {
+  if (!groups.length || !flow || v.p) groups.push([v]);
+  else groups[groups.length - 1].push(v);
+}
+
+const prev = adjacentChapter(book, chapter, -1);
+const next = adjacentChapter(book, chapter, 1);
+const intro = plainText(verses.slice(0, 3).map((v) => v.t).join(' '), t.suppliedWords);
+const description = `${book.name} ${chapter} (${t.abbr}): ${intro.length > 150 ? intro.slice(0, 147).trimEnd() + '…' : intro}`;
+---
+
+<Base
+  title={`${book.name} ${chapter} (${t.abbr}) – Booksor`}
+  description={description}
+  translation={t.id}
+  location={{ slug: book.slug, chapter }}
+>
+  <article class="chapter container">
+    <header class="chapter-head">
+      <div class="eyebrow">{t.name}</div>
+      <ChapterPicker client:idle tr={t.id} slug={book.slug} chapter={chapter} />
+    </header>
+
+    <div class:list={['verses', 'reading', flow ? 'flow' : 'lines']} lang={t.language} dir={t.dir}>
+      {
+        groups.map((group, gi) => (
+          <p>
+            {gi === 0 && (
+              <span class="chapnum" aria-hidden="true">
+                {chapter}
+              </span>
+            )}
+            {group.map((v) => (
+              <>
+                <span class="verse" id={`v${v.v}`} data-v={v.v}>
+                  <sup class="vn">{v.v}</sup>
+                  <span class="vt" set:html={verseHtml(v.t, t.suppliedWords)} />
+                </span>{' '}
+              </>
+            ))}
+          </p>
+        ))
+      }
+    </div>
+
+    <nav class="pager" aria-label="Chapters">
+      {
+        prev ? (
+          <a class="btn" href={chapterUrl(t.id, prev.book, prev.chapter)} data-nav="prev" rel="prev">
+            ← {prev.book.name} {prev.chapter}
+          </a>
+        ) : (
+          <span />
+        )
+      }
+      {
+        next && (
+          <a class="btn" href={chapterUrl(t.id, next.book, next.chapter)} data-nav="next" rel="next">
+            {next.book.name} {next.chapter} →
+          </a>
+        )
+      }
+    </nav>
+
+    <p class="attribution">{t.attribution} <a href="/about">Licenses</a></p>
+  </article>
+
+  <ShareVerse client:load tr={t.id} abbr={t.abbr} bookName={book.name} chapter={chapter} />
+</Base>
+
+<script>
+  // ← / → move between chapters
+  document.addEventListener('keydown', (e) => {
+    if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
+    if ((e.target as HTMLElement).closest('input, textarea, select, [contenteditable="true"]')) return;
+    if (document.querySelector('dialog[open]')) return;
+    const rel = e.key === 'ArrowRight' ? 'next' : e.key === 'ArrowLeft' ? 'prev' : null;
+    const link = rel && document.querySelector<HTMLAnchorElement>(`a[data-nav="${rel}"]`);
+    if (link) window.location.href = link.href;
+  });
+</script>
+
+<style is:global>
+.chapter {
+    max-width: 720px;
+    padding-top: 28px;
+  }
+.chapter-head {
+    margin-bottom: 20px;
+  }
+.chapter .verses {
+    font-size: var(--reader-size);
+    line-height: 1.75;
+    hyphens: auto;
+    -webkit-hyphens: auto;
+  }
+.chapter .verses p {
+    margin: 0 0 0.9em;
+  }
+.chapter .chapnum {
+    float: left;
+    margin: 0.06em 0.18em 0 0;
+    font-size: 3.6em;
+    font-weight: 600;
+    line-height: 0.95;
+    color: var(--accent);
+  }
+.chapter .chapnum + .verse .vn {
+    display: none;
+  }
+.chapter .lines .verse {
+    display: block;
+    margin-bottom: 0.45em;
+  }
+.chapter .lines .chapnum {
+    font-size: 2.6em;
+  }
+.chapter .verse {
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    -webkit-tap-highlight-color: transparent;
+  }
+.chapter .verse.target {
+    background: var(--highlight);
+    box-shadow: 0 0 0 3px var(--highlight);
+  }
+.chapter .verse.selected {
+    background: color-mix(in srgb, var(--accent) 16%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 16%, transparent);
+    text-decoration: underline dotted color-mix(in srgb, var(--accent) 60%, transparent);
+    text-underline-offset: 4px;
+  }
+.chapter .vn {
+    margin-right: 0.2em;
+    font-family: var(--font-ui);
+    font-size: 0.58em;
+    font-weight: 600;
+    color: var(--verse-num);
+    user-select: none;
+  }
+.chapter .vt em.added {
+    font-style: italic;
+    opacity: 0.85;
+  }
+.chapter .pager {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 40px;
+  }
+.chapter .attribution {
+    margin-top: 32px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+</style>

@@ -35,6 +35,7 @@ const href = (slug: string, chapter = 1) => chapterUrl(DEFAULT_TRANSLATION, book
       <SearchBox client:load variant="hero" />
     </div>
     <div class="popular" aria-label="Popular chapters">
+      <a class="btn btn-primary continue" href="/kjv/john/1" data-continue hidden>Continue reading</a>
       {
         popular.map(([slug, ch]) => (
           <a class="btn" href={href(slug, ch)} data-tr-link>
@@ -69,11 +70,21 @@ const href = (slug: string, chapter = 1) => chapterUrl(DEFAULT_TRANSLATION, book
 </Base>
 
 <script>
-  import { preferredTranslation, TRANSLATION_EVENT } from '../lib/prefs.ts';
+  import { bookBySlug, chapterUrl } from '../lib/books.ts';
+  import { loadLastRead, preferredTranslation, TRANSLATION_EVENT } from '../lib/prefs.ts';
+
+  const last = loadLastRead();
+  const lastBook = last && bookBySlug.get(last.slug);
 
   function retarget(tr: string) {
     for (const a of document.querySelectorAll<HTMLAnchorElement>('a[data-tr-link]')) {
       a.pathname = a.pathname.replace(/^\/[^/]+/, `/${tr}`);
+    }
+    const resume = document.querySelector<HTMLAnchorElement>('a[data-continue]');
+    if (resume && last && lastBook) {
+      resume.href = `${chapterUrl(tr, lastBook, last.chapter)}#at${last.verse}`;
+      resume.textContent = `Continue: ${lastBook.name} ${last.chapter}${last.verse > 1 ? `:${last.verse}` : ''}`;
+      resume.hidden = false;
     }
   }
   retarget(preferredTranslation());

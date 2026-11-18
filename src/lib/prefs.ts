@@ -6,9 +6,26 @@ export type Theme = 'system' | 'light' | 'sepia' | 'dark';
 export interface Settings {
   theme: Theme;
   size: number;
+  /** Hide everything but the text on chapter pages */
+  focus: boolean;
+  /** Read-aloud speed (1 = normal) and chosen voice name ('' = best available) */
+  rate: number;
+  voice: string;
+  /** Auto-scroll speed, 1–10 */
+  scrollSpeed: number;
+  /** Keep listening / scrolling into the next chapter */
+  continueNext: boolean;
 }
 
-export const DEFAULT_SETTINGS: Settings = { theme: 'system', size: 19 };
+export const DEFAULT_SETTINGS: Settings = {
+  theme: 'system',
+  size: 19,
+  focus: false,
+  rate: 1,
+  voice: '',
+  scrollSpeed: 3,
+  continueNext: true,
+};
 export const MIN_SIZE = 14;
 export const MAX_SIZE = 28;
 
@@ -40,9 +57,12 @@ export function loadSettings(): Settings {
   }
 }
 
-export function saveSettings(s: Settings) {
+/** Change some settings, keeping the rest as stored (several components save settings). */
+export function updateSettings(patch: Partial<Settings>): Settings {
+  const s = { ...loadSettings(), ...patch };
   write(SETTINGS_KEY, JSON.stringify(s));
   applySettings(s);
+  return s;
 }
 
 export function applySettings(s: Settings) {
@@ -50,6 +70,7 @@ export function applySettings(s: Settings) {
   if (s.theme === 'system') delete root.dataset.theme;
   else root.dataset.theme = s.theme;
   root.style.setProperty('--reader-size', `${s.size}px`);
+  root.toggleAttribute('data-focus', s.focus);
 }
 
 export function preferredTranslation(): string {
@@ -60,4 +81,29 @@ export function preferredTranslation(): string {
 export function setPreferredTranslation(id: string) {
   write(TRANSLATION_KEY, id);
   window.dispatchEvent(new CustomEvent(TRANSLATION_EVENT, { detail: id }));
+}
+
+// --- Where you left off ---
+
+export interface LastRead {
+  slug: string;
+  chapter: number;
+  /** Verse at the top of the screen */
+  verse: number;
+  at: number;
+}
+
+const LAST_KEY = 'booksor:last';
+
+export function loadLastRead(): LastRead | null {
+  try {
+    const x = JSON.parse(read(LAST_KEY) ?? 'null');
+    return x && typeof x.slug === 'string' && x.chapter > 0 ? { verse: 1, ...x } : null;
+  } catch {
+    return null;
+  }
+}
+
+export function saveLastRead(last: Omit<LastRead, 'at'>) {
+  write(LAST_KEY, JSON.stringify({ ...last, at: Date.now() }));
 }

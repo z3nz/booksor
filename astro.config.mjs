@@ -8,5 +8,5 @@ export default defineConfig({
   trailingSlash: 'never',
   // /kjv/john/3 -> dist/kjv/john/3.html (Cloudflare serves it at the clean URL)
   build: { format: 'file' },
-  integrations: [svelte(), sitemap()],
+  integrations: [svelte(), sitemap({ filter: (page) => !page.endsWith('/saved') })],
 });

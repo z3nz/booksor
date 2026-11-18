@@ -3,6 +3,7 @@
 // Every verse is indexed once, using the words from *all* translations in that language,
 // so a quote in any wording finds the verse. Results are shown in the reader's translation.
 import MiniSearch, { type SearchResult } from 'minisearch';
+import { verseKey } from './books.ts';
 import { processTerm, words } from './terms.ts';
 import type { SearchRow } from './types.ts';
 
@@ -17,7 +18,7 @@ export function buildIndex(rows: SearchRow[]): SearchIndex {
   return index;
 }
 
-export const verseKey = (b: number, c: number, v: number) => `${b}:${c}:${v}`;
+export { verseKey };
 
 export interface SearchHit {
   b: number;

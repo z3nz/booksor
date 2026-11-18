@@ -91,6 +91,9 @@ export const bookBySlug = new Map(BOOKS.map((b) => [b.slug, b]));
 export const bookByCode = new Map(BOOKS.map((b) => [b.code, b]));
 export const bookIndex = new Map(BOOKS.map((b, i) => [b.code, i]));
 
+/** Same verse in every translation: book index, chapter, verse. */
+export const verseKey = (b: number, c: number, v: number) => `${b}:${c}:${v}`;
+
 /** URL for a chapter, with an optional verse (or verse range) anchor. */
 export function chapterUrl(
   translation: string,

@@ -5,6 +5,7 @@ import '../styles/global.css';
 import SearchBox from '../components/SearchBox.svelte';
 import TranslationSwitcher from '../components/TranslationSwitcher.svelte';
 import ReaderSettings from '../components/ReaderSettings.svelte';
+import { iconSvg } from '../lib/icons.ts';
 
 interface Props {
   title: string;
@@ -14,9 +15,11 @@ interface Props {
   /** Where the translation switcher should keep you */
   location?: { slug: string; chapter: number };
   showSearch?: boolean;
+  /** Keep this page out of search engines (e.g. the reader's own Saved page) */
+  noindex?: boolean;
 }
 
-const { title, description, translation, location, showSearch = true } = Astro.props;
+const { title, description, translation, location, showSearch = true, noindex = false } = Astro.props;
 const canonical = new URL(Astro.url.pathname.replace(/\.html$/, '').replace(/\/$/, '') || '/', Astro.site);
 ---
 
@@ -28,6 +31,7 @@ const canonical = new URL(Astro.url.pathname.replace(/\.html$/, '').replace(/\/$
     <title>{title}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
+    {noindex && <meta name="robots" content="noindex" />}
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="sitemap" href="/sitemap-index.xml" />
     <meta name="theme-color" content="#fbf8f2" media="(prefers-color-scheme: light)" />
@@ -45,6 +49,7 @@ const canonical = new URL(Astro.url.pathname.replace(/\.html$/, '').replace(/\/$
         const r = document.documentElement;
         if (s.theme && s.theme !== 'system') r.dataset.theme = s.theme;
         if (s.size) r.style.setProperty('--reader-size', s.size + 'px');
+        if (s.focus) r.setAttribute('data-focus', '');
       } catch {}
     </script>
   </head>
@@ -68,6 +73,7 @@ const canonical = new URL(Astro.url.pathname.replace(/\.html$/, '').replace(/\/$
         }
         <div class="header-actions">
           <TranslationSwitcher client:load current={translation} location={location} />
+          <a class="btn btn-icon" href="/saved" aria-label="Saved highlights, notes and bookmarks" title="Saved" set:html={iconSvg('bookmark', 18)} />
           <ReaderSettings client:load />
         </div>
       </div>
@@ -81,6 +87,7 @@ const canonical = new URL(Astro.url.pathname.replace(/\.html$/, '').replace(/\/$
       <div class="container footer-inner">
         <p>Booksor — read, search and share the Bible. Free, no ads, no tracking.</p>
         <nav aria-label="Footer">
+          <a href="/saved">Saved</a>
           <a href="/about">About &amp; licenses</a>
           <a href="/kjv">KJV</a>
           <a href="/web">WEB</a>

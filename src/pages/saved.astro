@@ -1,0 +1,28 @@
+---
+import Base from '../layouts/Base.astro';
+import SavedLibrary from '../components/SavedLibrary.svelte';
+---
+
+<Base
+  title="Saved – Booksor"
+  description="Your highlights, notes and bookmarks, saved on this device."
+  noindex
+>
+  <div class="container saved">
+    <h1>Saved</h1>
+    <SavedLibrary client:load />
+  </div>
+</Base>
+
+<style>
+  .saved {
+    max-width: 760px;
+    padding-top: 28px;
+  }
+  h1 {
+    margin: 0 0 20px;
+    font-family: var(--font-reading);
+    font-size: clamp(28px, 5vw, 36px);
+    font-weight: 600;
+  }
+</style>

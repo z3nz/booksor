@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { DEFAULT_SETTINGS, loadSettings, MAX_SIZE, MIN_SIZE, saveSettings, type Settings, type Theme } from '../lib/prefs.ts';
+  import { DEFAULT_SETTINGS, loadSettings, MAX_SIZE, MIN_SIZE, updateSettings, type Settings, type Theme } from '../lib/prefs.ts';
 
   let open = $state(false);
   let settings = $state<Settings>({ ...DEFAULT_SETTINGS });
@@ -18,8 +18,7 @@
   });
 
   function update(patch: Partial<Settings>) {
-    settings = { ...settings, ...patch };
-    saveSettings(settings);
+    settings = updateSettings(patch);
   }
 
   function onWindowClick(e: MouseEvent) {

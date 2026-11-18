@@ -2,7 +2,8 @@
 import type { GetStaticPaths } from 'astro';
 import Base from '../../../layouts/Base.astro';
 import ChapterPicker from '../../../components/ChapterPicker.svelte';
-import ShareVerse from '../../../components/ShareVerse.svelte';
+import ReadingTools from '../../../components/ReadingTools.svelte';
+import VerseActions from '../../../components/VerseActions.svelte';
 import { BOOKS, adjacentChapter, chapterUrl } from '../../../lib/books.ts';
 import { getChapter } from '../../../lib/db.ts';
 import { plainText, verseHtml } from '../../../lib/text.ts';
@@ -54,6 +55,12 @@ const description = `${book.name} ${chapter} (${t.abbr}): ${intro.length > 150 ?
     <header class="chapter-head">
       <div class="eyebrow">{t.name}</div>
       <ChapterPicker client:idle tr={t.id} slug={book.slug} chapter={chapter} />
+      <ReadingTools
+        client:load
+        lang={t.language}
+        intro={`${book.name}, chapter ${chapter}`}
+        nextUrl={next ? chapterUrl(t.id, next.book, next.chapter) : null}
+      />
     </header>
 
     <div class:list={['verses', 'reading', flow ? 'flow' : 'lines']} lang={t.language} dir={t.dir}>
@@ -100,10 +107,26 @@ const description = `${book.name} ${chapter} (${t.abbr}): ${intro.length > 150 ?
     <p class="attribution">{t.attribution} <a href="/about">Licenses</a></p>
   </article>
 
-  <ShareVerse client:load tr={t.id} abbr={t.abbr} bookName={book.name} chapter={chapter} />
+  <VerseActions client:load tr={t.id} abbr={t.abbr} bookName={book.name} bookIdx={bookIdx} chapter={chapter} />
 </Base>
 
 <script>
+  import { saveLastRead } from '../../../lib/prefs.ts';
+
+  // Remember where the reader is, for "Continue reading" on the home page
+  const [, , slug, chapter] = window.location.pathname.split('/');
+  const verses = [...document.querySelectorAll<HTMLElement>('.verses .verse[data-v]')];
+  const remember = () => {
+    const onScreen = verses.find((el) => el.getBoundingClientRect().bottom > 90);
+    saveLastRead({ slug, chapter: parseInt(chapter, 10), verse: Number(onScreen?.dataset.v ?? 1) });
+  };
+  let pending = 0;
+  remember();
+  window.addEventListener('scroll', () => {
+    clearTimeout(pending);
+    pending = window.setTimeout(remember, 500);
+  }, { passive: true });
+
   // ← / → move between chapters
   document.addEventListener('keydown', (e) => {
     if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
@@ -156,6 +179,23 @@ const description = `${book.name} ${chapter} (${t.abbr}): ${intro.length > 150 ?
     transition: background-color 0.2s;
     -webkit-tap-highlight-color: transparent;
   }
+.chapter .verse[data-hl] {
+    background: var(--hl);
+    box-shadow: 0 0 0 2px var(--hl);
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+  }
+.chapter .verse[data-hl='yellow'] { --hl: var(--hl-yellow); }
+.chapter .verse[data-hl='green'] { --hl: var(--hl-green); }
+.chapter .verse[data-hl='blue'] { --hl: var(--hl-blue); }
+.chapter .verse[data-hl='pink'] { --hl: var(--hl-pink); }
+.chapter .verse[data-hl='purple'] { --hl: var(--hl-purple); }
+.chapter .verse.speaking {
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent);
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+  }
 .chapter .verse.target {
     background: var(--highlight);
     box-shadow: 0 0 0 3px var(--highlight);
@@ -174,6 +214,25 @@ const description = `${book.name} ${chapter} (${t.abbr}): ${intro.length > 150 ?
     color: var(--verse-num);
     user-select: none;
   }
+.chapter .mark-icon {
+    display: inline-flex;
+    vertical-align: -0.1em;
+    color: var(--accent);
+  }
+.chapter .bm-icon {
+    margin-right: 0.15em;
+  }
+.chapter .note-btn {
+    margin-left: 0.25em;
+    padding: 2px;
+    border: 0;
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+    cursor: pointer;
+  }
+.chapter .note-btn:hover {
+    background: color-mix(in srgb, var(--accent) 22%, transparent);
+  }
 .chapter .vt em.added {
     font-style: italic;
     opacity: 0.85;
@@ -183,6 +242,25 @@ const description = `${book.name} ${chapter} (${t.abbr}): ${intro.length > 150 ?
     justify-content: space-between;
     gap: 12px;
     margin-top: 40px;
+  }
+.chapter {
+    padding-bottom: var(--player-space, 0px);
+  }
+/* Focus mode: just the text */
+:root[data-focus]:has(.chapter) .site-header,
+:root[data-focus]:has(.chapter) .site-footer,
+:root[data-focus] .chapter .eyebrow,
+:root[data-focus] .chapter .attribution {
+    display: none;
+  }
+:root[data-focus] .chapter {
+    max-width: 660px;
+    padding-top: 56px;
+    /* The footer is hidden, so leave room below the chapter buttons */
+    padding-bottom: calc(56px + var(--player-space, 0px) + env(safe-area-inset-bottom));
+  }
+:root[data-focus] .chapter .verses {
+    line-height: 1.85;
   }
 .chapter .attribution {
     margin-top: 32px;

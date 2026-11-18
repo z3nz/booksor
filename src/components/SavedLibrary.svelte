@@ -23,7 +23,7 @@
     type PassageRef,
   } from '../lib/library.ts';
   import { loadLastRead, preferredTranslation, type LastRead } from '../lib/prefs.ts';
-  import { translationById } from '../lib/translations.ts';
+  import { DEFAULT_TRANSLATION, translationById } from '../lib/translations.ts';
 
   type Tab = 'highlights' | 'notes' | 'bookmarks';
 
@@ -32,7 +32,7 @@
   let tab = $state<Tab>('highlights');
   let color = $state<Color | null>(null);
   let order = $state<'newest' | 'bible'>('newest');
-  let tr = $state('kjv');
+  let tr = $state(DEFAULT_TRANSLATION);
   let last = $state<LastRead | null>(null);
   let toast = $state('');
   let undo = $state<Library | null>(null);

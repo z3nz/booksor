@@ -61,8 +61,8 @@ describe.skipIf(!hasData)('search quality (cross-translation)', () => {
   const top = (q: string, shown = kjv) =>
     search(index, rows, shown, q).hits.slice(0, 5).map((h) => verseKey(h.b, h.c, h.v));
 
-  // Modern (NIV/NKJV/ESV-style) wording, searched while reading the KJV
-  it.each([
+  // Modern (NIV/NKJV/ESV-style) wording, searched while reading the KJV (old wording) and the BSB (default)
+  const QUOTES: [string, string][] = [
     ['I can do all things through Christ who strengthens me', 'Philippians 4:13'],
     ['love is patient love is kind', '1 Corinthians 13:4'],
     ['trust in the lord with all your heart', 'Proverbs 3:5'],
@@ -74,8 +74,15 @@ describe.skipIf(!hasData)('search quality (cross-translation)', () => {
     ['be still and know that I am God', 'Psalms 46:10'],
     ['the wages of sin is death', 'Romans 6:23'],
     ['love is patient', '1 Corinthians 13:4'],
-  ])('"%s" finds %s in the top 5', (q, ref) => {
+  ];
+  const bsb = hasData ? display('bsb') : new Map<string, string>();
+
+  it.each(QUOTES)('KJV: "%s" finds %s in the top 5', (q, ref) => {
     expect(top(q)).toContain(keyOf(ref));
+  });
+
+  it.each(QUOTES)('BSB: "%s" finds %s in the top 5', (q, ref) => {
+    expect(top(q, bsb)).toContain(keyOf(ref));
   });
 
   it('shows the verse in the reader’s translation and flags other wording', () => {

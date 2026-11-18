@@ -6,7 +6,7 @@
   import { describesSelf, helpUrl, isCrisisQuery, matchSituations, soundsPersonal } from '../lib/situations.ts';
   import CareNote from './CareNote.svelte';
   import { preferredTranslation, TRANSLATION_EVENT } from '../lib/prefs.ts';
-  import { translationById } from '../lib/translations.ts';
+  import { DEFAULT_TRANSLATION, translationById } from '../lib/translations.ts';
   import type { SearchHit, SearchRequest, SearchResponse } from '../lib/search.worker.ts';
 
   let {
@@ -15,7 +15,7 @@
     placeholder,
   }: { variant?: 'hero' | 'compact'; translation?: string; placeholder?: string } = $props();
 
-  let tr = $state('kjv');
+  let tr = $state(DEFAULT_TRANSLATION);
   let q = $state('');
   let open = $state(false);
   let status = $state<'idle' | 'loading' | 'ready' | 'error'>('idle');
@@ -245,7 +245,11 @@
         {#if status === 'loading' && !hits.length}
           <div class="status">Loading search…</div>
         {:else if status === 'error'}
-          <div class="status">Search couldn’t load. Check your connection and try again.</div>
+          <div class="status">
+            {navigator.onLine
+              ? 'Search couldn’t load. Check your connection and try again.'
+              : 'Search needs a connection the first time. To search offline, download this translation in settings (Aa).'}
+          </div>
         {:else if shownHits.length}
           <div class="status">
             {partial ? 'No verse has all of those words. Closest matches: ' : ''}

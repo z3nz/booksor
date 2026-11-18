@@ -1,0 +1,9 @@
+# Built scripts, styles and fonts have content hashes in their names, so they never change
+/_astro/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Always check for a new service worker and offline manifest
+/sw.js
+  Cache-Control: no-cache
+/offline.json
+  Cache-Control: no-cache

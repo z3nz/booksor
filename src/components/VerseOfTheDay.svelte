@@ -3,10 +3,10 @@
   import { bookBySlug, chapterUrl } from '../lib/books.ts';
   import { preferredTranslation, TRANSLATION_EVENT } from '../lib/prefs.ts';
   import { shareOrCopy, shareOrDownloadImage, verseImage } from '../lib/share.ts';
-  import { translationById } from '../lib/translations.ts';
+  import { DEFAULT_TRANSLATION, translationById } from '../lib/translations.ts';
   import { votdIndex, type VotdEntry, type VotdMode } from '../lib/votd.ts';
 
-  let tr = $state('kjv');
+  let tr = $state(DEFAULT_TRANSLATION);
   let mode = $state<VotdMode>('day');
   let entries = $state<VotdEntry[]>([]);
   let now = $state(new Date());

@@ -1,0 +1,150 @@
+---
+// Shown by the service worker when you're offline and open a page that isn't saved yet.
+import Base from '../layouts/Base.astro';
+---
+
+<Base title="You're offline – Booksor" description="This page isn't saved on this device yet." noindex>
+  <div class="container offline">
+    <h1>You’re offline</h1>
+    <p class="lead">This page isn’t saved on this device yet. Here’s what you can still read:</p>
+
+    <section id="downloaded" hidden>
+      <h2 class="eyebrow">Downloaded</h2>
+      <div class="chips" id="downloaded-list"></div>
+    </section>
+
+    <section id="recent" hidden>
+      <h2 class="eyebrow">Recently read, saved on this device</h2>
+      <ul class="list" id="recent-list"></ul>
+    </section>
+
+    <section>
+      <h2 class="eyebrow">Always available</h2>
+      <div class="chips">
+        <a class="btn" href="/">Home</a>
+        <a class="btn" href="/saved">Your highlights &amp; notes</a>
+        <a class="btn" href="/help">What are you going through?</a>
+      </div>
+    </section>
+
+    <p class="tip">
+      Tip: to read anywhere, open the reading settings (<strong>Aa</strong>) while you’re online and download a translation.
+    </p>
+  </div>
+</Base>
+
+<script>
+  import { bookBySlug } from '../lib/books.ts';
+  import { loadManifest, offlineStatus } from '../lib/offline.ts';
+  import { loadHistory } from '../lib/prefs.ts';
+  import { situationBySlug } from '../lib/situations.ts';
+  import { TRANSLATIONS, translationById } from '../lib/translations.ts';
+
+  /** "/kjv/john/3" -> "John 3 · KJV"; null for pages that aren't chapters or situations */
+  function describe(path: string): string | null {
+    const [, tr, a, b] = path.split('/');
+    const t = translationById.get(tr);
+    if (!t || !a || !b) return null;
+    if (a === 'help') {
+      const s = situationBySlug.get(b);
+      return s ? `${s.title} · ${t.abbr}` : null;
+    }
+    const book = bookBySlug.get(a);
+    return book ? `${book.name} ${b} · ${t.abbr}` : null;
+  }
+
+  async function show() {
+    const m = await loadManifest();
+    if (!m || !('caches' in window)) return;
+
+    const done = [];
+    for (const t of TRANSLATIONS) {
+      const s = await offlineStatus(t.id);
+      if (s && s.done >= s.total) done.push(t);
+    }
+    if (done.length) {
+      const list = document.getElementById('downloaded-list')!;
+      for (const t of done) {
+        const a = document.createElement('a');
+        a.className = 'btn';
+        a.href = `/${t.id}`;
+        a.textContent = t.name;
+        list.append(a);
+      }
+      document.getElementById('downloaded')!.hidden = false;
+    }
+
+    // Chapters you've read recently that are saved on this device
+    const pages = await caches.open(m.pagesCache);
+    const recent: { path: string; label: string }[] = [];
+    for (const path of loadHistory()) {
+      const label = describe(path);
+      if (label && (await pages.match(new URL(path, location.origin).href, { ignoreVary: true }))) recent.push({ path, label });
+    }
+    if (recent.length) {
+      const list = document.getElementById('recent-list')!;
+      for (const { path, label } of recent) {
+        const li = document.createElement('li');
+        const a = document.createElement('a');
+        a.href = path;
+        a.textContent = label;
+        li.append(a);
+        list.append(li);
+      }
+      document.getElementById('recent')!.hidden = false;
+    }
+  }
+  show();
+</script>
+
+<style>
+  .offline {
+    max-width: 640px;
+    padding-top: clamp(32px, 8vw, 72px);
+  }
+  h1 {
+    margin: 0;
+    font-family: var(--font-reading);
+    font-size: clamp(30px, 6vw, 42px);
+    font-weight: 600;
+  }
+  .lead {
+    margin: 10px 0 28px;
+    color: var(--muted);
+    font-size: 18px;
+  }
+  section {
+    margin-bottom: 24px;
+  }
+  h2 {
+    margin: 0 0 10px;
+  }
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .chips :global(.btn) {
+    min-height: 36px;
+  }
+  .list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 6px 16px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .list :global(a) {
+    color: var(--text);
+    text-decoration: none;
+  }
+  .list :global(a:hover) {
+    color: var(--accent);
+  }
+  .tip {
+    margin-top: 32px;
+    color: var(--muted);
+    font-size: 14px;
+  }
+</style>

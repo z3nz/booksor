@@ -13,7 +13,7 @@ A free, fast Bible website: [booksor.com](https://booksor.com). See [ROADMAP.md]
 | `pnpm dev` | Local dev server |
 | `pnpm build` | Build every chapter page into `dist/` |
 | `pnpm preview` | Serve the built site locally |
-| `pnpm test` | Unit tests (reference parser, verse of the day) |
+| `pnpm test` | Unit tests (references, search quality, situations, saved verses, read-aloud, offline) |
 | `pnpm check` | Type check |
 | `pnpm run ci:build` | Everything Cloudflare runs: data, tests, build |
 | `pnpm run deploy` | Build and publish to Cloudflare by hand (normally automatic, see below) |
@@ -28,6 +28,9 @@ Run `pnpm data` once before `dev` or `build`. The downloads, the database and th
 - `src/lib/`: shared logic: books, the reference parser, preferences, sharing, and the search worker.
 - `src/pages/[tr]/[book]/[chapter].astro`: one static page per chapter, read from SQLite while the site builds.
 - Search runs in a Web Worker in the browser using MiniSearch, so there's no server and no per-search cost.
+- `data/situations.json`: the "What are you going through?" topics, their search keywords and verses. A test checks every verse exists in every translation.
+- Offline: `src/service-worker.js` is a template. After each build, `integrations/offline.mjs` writes `dist/sw.js` (with the build's file list and version) and `dist/offline.json` (cache names and download sizes for the "Download for offline" button in `src/lib/offline.ts`). The service worker only registers in production builds, so `pnpm dev` always shows fresh code.
+- App icons in `public/icons/` are drawn from the logo by `node scripts/make-icons.ts`; rerun it if the logo changes.
 
 ## Deployment
 

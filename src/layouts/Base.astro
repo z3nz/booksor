@@ -6,6 +6,7 @@ import SearchBox from '../components/SearchBox.svelte';
 import TranslationSwitcher from '../components/TranslationSwitcher.svelte';
 import ReaderSettings from '../components/ReaderSettings.svelte';
 import { iconSvg } from '../lib/icons.ts';
+import { TRANSLATIONS } from '../lib/translations.ts';
 
 interface Props {
   title: string;
@@ -33,6 +34,10 @@ const canonical = new URL(Astro.url.pathname.replace(/\.html$/, '').replace(/\/$
     <link rel="canonical" href={canonical} />
     {noindex && <meta name="robots" content="noindex" />}
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-title" content="Booksor" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <link rel="sitemap" href="/sitemap-index.xml" />
     <meta name="theme-color" content="#fbf8f2" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#15130f" media="(prefers-color-scheme: dark)" />
@@ -72,6 +77,7 @@ const canonical = new URL(Astro.url.pathname.replace(/\.html$/, '').replace(/\/$
           )
         }
         <div class="header-actions">
+          <span class="offline-pill" role="status" title="No connection. Saved pages still work.">Offline</span>
           <TranslationSwitcher client:load current={translation} location={location} />
           <a class="btn btn-icon" href="/saved" aria-label="Saved highlights, notes and bookmarks" title="Saved" set:html={iconSvg('bookmark', 18)} />
           <ReaderSettings client:load />
@@ -90,14 +96,31 @@ const canonical = new URL(Astro.url.pathname.replace(/\.html$/, '').replace(/\/$
           <a href="/help">Verses for hard times</a>
           <a href="/saved">Saved</a>
           <a href="/about">About &amp; licenses</a>
-          <a href="/kjv">KJV</a>
-          <a href="/web">WEB</a>
-          <a href="/bsb">BSB</a>
+          {TRANSLATIONS.map((t) => <a href={`/${t.id}`}>{t.abbr}</a>)}
         </nav>
       </div>
     </footer>
   </body>
 </html>
+
+<script>
+  // Install as an app: browsers that support it fire this once; the settings panel shows the button
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    (window as { booksorInstall?: Event }).booksorInstall = e;
+    window.dispatchEvent(new Event('booksor:installable'));
+  });
+
+  // Offline: save pages as they're read (production only, so development always shows fresh code)
+  if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+    window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
+  }
+
+  const showConnection = () => document.documentElement.toggleAttribute('data-offline', !navigator.onLine);
+  showConnection();
+  window.addEventListener('online', showConnection);
+  window.addEventListener('offline', showConnection);
+</script>
 
 <style>
   .skip {
@@ -146,6 +169,20 @@ const canonical = new URL(Astro.url.pathname.replace(/\.html$/, '').replace(/\/$
     align-items: center;
     gap: 8px;
     margin-left: auto;
+  }
+  .offline-pill {
+    display: none;
+    align-items: center;
+    height: 26px;
+    padding: 0 10px;
+    border-radius: 999px;
+    background: var(--surface-2);
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 600;
+  }
+  :global(:root[data-offline]) .offline-pill {
+    display: inline-flex;
   }
   .header-search {
     order: 3;

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import OfflineSettings from './OfflineSettings.svelte';
   import { DEFAULT_SETTINGS, loadSettings, MAX_SIZE, MIN_SIZE, updateSettings, type Settings, type Theme } from '../lib/prefs.ts';
 
   let open = $state(false);
@@ -22,7 +23,8 @@
   }
 
   function onWindowClick(e: MouseEvent) {
-    if (open && !root.contains(e.target as Node)) open = false;
+    // composedPath: the clicked button may already be gone from the page (e.g. swapped for a progress bar)
+    if (open && !e.composedPath().includes(root)) open = false;
   }
   function onWindowKey(e: KeyboardEvent) {
     if (open && e.key === 'Escape') open = false;
@@ -43,8 +45,8 @@
     <span class="aa">A<span>a</span></span>
   </button>
 
-  {#if open}
-    <div class="panel card" id="reader-settings" role="dialog" aria-label="Reading settings">
+  <!-- Stays mounted while closed so an offline download keeps its progress -->
+  <div class="panel card" id="reader-settings" role="dialog" aria-label="Reading settings" hidden={!open}>
       <div class="eyebrow">Theme</div>
       <div class="themes">
         {#each THEMES as t (t.id)}
@@ -79,8 +81,8 @@
         >
       </div>
       <p class="preview reading">In the beginning was the Word, and the Word was with God.</p>
-    </div>
-  {/if}
+      <OfflineSettings active={open} />
+  </div>
 </div>
 
 <style>
@@ -101,6 +103,8 @@
     right: 0;
     z-index: 40;
     width: min(320px, calc(100vw - 32px));
+    max-height: calc(100dvh - 90px);
+    overflow-y: auto;
     padding: 16px;
     display: flex;
     flex-direction: column;

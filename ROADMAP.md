@@ -34,11 +34,11 @@ A free, fast, beautiful Bible site at **booksor.com**.
 - [ ] **M** Bible translations in many languages (eBible.org imports)
 - [ ] **M** Site menus in multiple languages
 - [ ] **M** Switch chapter pages to on-demand rendering with edge caching once we near the 20k-file limit (Astro Cloudflare adapter + D1 or R2)
-- [x] **M** "I'm struggling with…" situation search: 40 curated situations (`data/situations.json`) with topic pages, a `/help` hub, search cards, and crisis resources for sensitive topics
+- [x] **M** "I'm struggling with…" situation search: 39 curated situations (`data/situations.json`) with topic pages, a `/help` hub, search cards, and crisis resources for sensitive topics
 - [x] **M** Reading mode: read aloud using the browser's built-in voices (speed, voice, verse highlighting, continues into the next chapter), auto-scroll, focus mode
 - [x] **M** Bookmarks, highlights (5 colors), notes, saved on the device (no account needed), with a Saved page and backup/restore
 - [x] **S** "Continue where you left off" on the home page
-- [ ] **S** Offline support: install like an app and read without internet
+- [x] **S** Offline support: install like an app, pages you read are saved automatically, download a whole translation (with search) from the settings panel
 
 ## Phase 3 — The book experience
 

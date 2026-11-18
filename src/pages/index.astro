@@ -26,7 +26,7 @@ const href = (slug: string, chapter = 1) => chapterUrl(DEFAULT_TRANSLATION, book
 
 <Base
   title="Booksor – Read, search and share the Bible"
-  description="A free, fast and beautiful Bible. Search every verse as you type, find verses for what you're going through, listen, highlight and share. KJV, WEB and BSB."
+  description="A free, fast and beautiful Bible. Search every verse as you type, find verses for what you're going through, listen, highlight and share. BSB, KJV and WEB."
   showSearch={false}
 >
   <section class="hero container">
@@ -36,7 +36,7 @@ const href = (slug: string, chapter = 1) => chapterUrl(DEFAULT_TRANSLATION, book
       <SearchBox client:load variant="hero" />
     </div>
     <div class="popular" aria-label="Popular chapters">
-      <a class="btn btn-primary continue" href="/kjv/john/1" data-continue hidden>Continue reading</a>
+      <a class="btn btn-primary continue" href={href('john')} data-continue hidden>Continue reading</a>
       {
         popular.map(([slug, ch]) => (
           <a class="btn" href={href(slug, ch)} data-tr-link>

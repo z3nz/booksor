@@ -1,0 +1,22 @@
+{
+  "name": "Booksor – Read the Bible",
+  "short_name": "Booksor",
+  "description": "A free, fast and beautiful Bible. Search, listen, highlight and read offline.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fbf8f2",
+  "theme_color": "#fbf8f2",
+  "categories": ["books", "education", "lifestyle"],
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ],
+  "shortcuts": [
+    { "name": "Saved", "url": "/saved", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "What are you going through?", "short_name": "Situations", "url": "/help", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] }
+  ]
+}

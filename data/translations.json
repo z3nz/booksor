@@ -1,5 +1,17 @@
 [
   {
+    "id": "bsb",
+    "abbr": "BSB",
+    "name": "Berean Standard Bible",
+    "language": "en",
+    "languageName": "English",
+    "dir": "ltr",
+    "source": "engbsb",
+    "sourceUrl": "https://ebible.org/Scriptures/engbsb_vpl.zip",
+    "license": "Public Domain",
+    "attribution": "The Holy Bible, Berean Standard Bible (BSB), public domain. Contributor: BSB Publishing, LLC. Text from eBible.org."
+  },
+  {
     "id": "kjv",
     "abbr": "KJV",
     "name": "King James Version",
@@ -23,17 +35,5 @@
     "sourceUrl": "https://ebible.org/Scriptures/eng-web_vpl.zip",
     "license": "Public Domain",
     "attribution": "World English Bible, public domain. \"World English Bible\" is a trademark of eBible.org. Text from eBible.org."
-  },
-  {
-    "id": "bsb",
-    "abbr": "BSB",
-    "name": "Berean Standard Bible",
-    "language": "en",
-    "languageName": "English",
-    "dir": "ltr",
-    "source": "engbsb",
-    "sourceUrl": "https://ebible.org/Scriptures/engbsb_vpl.zip",
-    "license": "Public Domain",
-    "attribution": "The Holy Bible, Berean Standard Bible (BSB), public domain. Contributor: BSB Publishing, LLC. Text from eBible.org."
   }
 ]

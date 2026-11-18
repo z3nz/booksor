@@ -107,3 +107,21 @@ export function loadLastRead(): LastRead | null {
 export function saveLastRead(last: Omit<LastRead, 'at'>) {
   write(LAST_KEY, JSON.stringify({ ...last, at: Date.now() }));
 }
+
+// --- Recently read chapters (for the offline page) ---
+
+const HISTORY_KEY = 'booksor:history';
+
+/** Paths like "/kjv/john/3", newest first */
+export function loadHistory(): string[] {
+  try {
+    const list = JSON.parse(read(HISTORY_KEY) ?? '[]');
+    return Array.isArray(list) ? list.filter((p) => typeof p === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+export function recordHistory(path: string) {
+  write(HISTORY_KEY, JSON.stringify([path, ...loadHistory().filter((p) => p !== path)].slice(0, 20)));
+}

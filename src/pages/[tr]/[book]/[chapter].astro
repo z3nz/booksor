@@ -2,10 +2,11 @@
 import type { GetStaticPaths } from 'astro';
 import Base from '../../../layouts/Base.astro';
 import ChapterPicker from '../../../components/ChapterPicker.svelte';
+import CrossRefs from '../../../components/CrossRefs.svelte';
 import ReadingTools from '../../../components/ReadingTools.svelte';
 import VerseActions from '../../../components/VerseActions.svelte';
 import { BOOKS, adjacentChapter, chapterUrl } from '../../../lib/books.ts';
-import { getChapter } from '../../../lib/db.ts';
+import { getChapter, getXrefCounts } from '../../../lib/db.ts';
 import { plainText, verseHtml } from '../../../lib/text.ts';
 import { TRANSLATIONS } from '../../../lib/translations.ts';
 import type { Translation, Verse } from '../../../lib/types.ts';
@@ -29,6 +30,7 @@ const { t, bookIdx } = Astro.props;
 const book = BOOKS[bookIdx];
 const chapter = Number(Astro.params.chapter);
 const verses = getChapter(t.id, bookIdx, chapter);
+const xrefCounts = getXrefCounts(bookIdx, chapter);
 
 // Flow verses into paragraphs when the translation marks them; otherwise (and for poetry) one verse per line.
 const poetry = ['PSA', 'PRO'].includes(book.code);
@@ -56,6 +58,10 @@ const description = `${book.name} ${chapter} (${t.abbr}): ${intro.length > 150 ?
     data-title={`${book.name} ${chapter}`}
     data-intro={`${book.name}, chapter ${chapter}`}
     data-lang={t.language}
+    data-tr={t.id}
+    data-slug={book.slug}
+    data-book={bookIdx}
+    data-chapter={chapter}
   >
     <header class="chapter-head">
       <div class="eyebrow">{t.name}</div>
@@ -77,6 +83,11 @@ const description = `${book.name} ${chapter} (${t.abbr}): ${intro.length > 150 ?
                 <span class="verse" id={`v${v.v}`} data-v={v.v}>
                   <sup class="vn">{v.v}</sup>
                   <span class="vt" set:html={verseHtml(v.t, t.suppliedWords)} />
+                  {xrefCounts.get(v.v) && (
+                    <button class="xn" data-xv={v.v} aria-label={`${xrefCounts.get(v.v)} related passages for verse ${v.v}`}>
+                      {xrefCounts.get(v.v)}
+                    </button>
+                  )}
                 </span>{' '}
               </>
             ))}
@@ -108,6 +119,8 @@ const description = `${book.name} ${chapter} (${t.abbr}): ${intro.length > 150 ?
   </article>
 
   <VerseActions client:load tr={t.id} abbr={t.abbr} bookName={book.name} bookIdx={bookIdx} chapter={chapter} />
+  <!-- Stays open as you follow references from chapter to chapter -->
+  <CrossRefs client:load transition:persist="cross-refs" />
 </Base>
 
 <script>
@@ -275,6 +288,26 @@ const description = `${book.name} ${chapter} (${t.abbr}): ${intro.length > 150 ?
     padding-top: 56px;
     /* The footer is hidden, so leave room below the chapter buttons */
     padding-bottom: calc(56px + var(--listen-space, 0px) + var(--scroll-space, 0px) + env(safe-area-inset-bottom));
+  }
+.chapter .xn {
+    display: none;
+  }
+/* Study mode: how many related passages each verse has; tap to see them */
+:root[data-study] .chapter .xn {
+    display: inline-block;
+    min-width: 1.7em;
+    margin-left: 0.3em;
+    padding: 0 0.4em;
+    border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--accent) 7%, var(--surface));
+    color: var(--accent);
+    font: 600 11px/1.6 var(--font-ui, system-ui, sans-serif);
+    vertical-align: 0.25em;
+    cursor: pointer;
+  }
+:root[data-study] .chapter .xn:hover {
+    background: color-mix(in srgb, var(--accent) 15%, var(--surface));
   }
 :root[data-focus] .chapter .verses {
     line-height: 1.85;

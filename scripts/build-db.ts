@@ -1,10 +1,12 @@
-// Parses the downloaded eBible.org files into data/bible.sqlite.
-// Run with: node scripts/build-db.ts
+// Parses the downloaded eBible.org files, and the cross-references in data/cross-references.zip,
+// into data/bible.sqlite. Run with: node scripts/build-db.ts
 import { readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
+import { strFromU8, unzipSync } from 'fflate';
 import translations from '../data/translations.json' with { type: 'json' };
 import { BOOKS, bookIndex } from '../src/lib/books.ts';
+import { parseOsisRange, parseOsisVerse } from '../src/lib/osis.ts';
 
 const DATA = join(import.meta.dirname, '..', 'data');
 const DB_PATH = join(DATA, 'bible.sqlite');
@@ -22,6 +24,18 @@ db.exec(`
     para INTEGER NOT NULL DEFAULT 0,  -- 1 = starts a paragraph
     PRIMARY KEY (tr, book, chapter, verse)
   ) WITHOUT ROWID;
+  -- From OpenBible.info (CC BY): verse → related passage, with readers' votes for how helpful it is
+  CREATE TABLE xrefs (
+    book INTEGER NOT NULL,
+    chapter INTEGER NOT NULL,
+    verse INTEGER NOT NULL,
+    to_book INTEGER NOT NULL,
+    to_chapter INTEGER NOT NULL,
+    to_verse INTEGER NOT NULL,
+    end_chapter INTEGER NOT NULL,
+    end_verse INTEGER NOT NULL,
+    votes INTEGER NOT NULL
+  );
 `);
 
 const insertTr = db.prepare('INSERT INTO translations (id, json) VALUES (?, ?)');
@@ -61,6 +75,37 @@ for (const t of translations) {
   console.log(`✓ ${t.abbr}: ${count.toLocaleString()} verses${skipped ? ` (skipped ${skipped} verses from extra books)` : ''}`);
 }
 db.exec('COMMIT');
+
+// Cross-references. Snapshot kept in the repo so the data (and people's offline downloads) only
+// change when we choose to update it: pnpm xref:update
+const zip = unzipSync(new Uint8Array(readFileSync(join(DATA, 'cross-references.zip'))));
+const xrefText = strFromU8(zip['cross_references.txt']);
+const insertXref = db.prepare('INSERT INTO xrefs VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
+const hasVerse = db.prepare("SELECT 1 FROM verses WHERE tr = 'kjv' AND book = ? AND chapter = ? AND verse = ?");
+let xrefs = 0;
+let dropped = 0;
+db.exec('BEGIN');
+for (const line of xrefText.split(/\r?\n/).slice(1)) {
+  if (!line.trim()) continue;
+  const [fromS, toS, votesS] = line.split('\t');
+  const votes = Number(votesS);
+  const from = parseOsisVerse(fromS);
+  const to = parseOsisRange(toS);
+  // Readers voted some links unhelpful; and skip anything that doesn't point at a real verse
+  if (votes < 0 || !from || !to || !hasVerse.get(from.b, from.c, from.v) || !hasVerse.get(to.start.b, to.start.c, to.start.v)) {
+    dropped++;
+    continue;
+  }
+  insertXref.run(from.b, from.c, from.v, to.start.b, to.start.c, to.start.v, to.end.c, to.end.v, votes);
+  xrefs++;
+}
+db.exec('CREATE INDEX xrefs_from ON xrefs (book, chapter, verse)');
+db.exec('COMMIT');
+console.log(`✓ cross-references: ${xrefs.toLocaleString()} (left out ${dropped.toLocaleString()})`);
+if (xrefs < 300_000) {
+  console.warn('  ! fewer cross-references than expected');
+  problems++;
+}
 
 // Sanity check: John 3:16 in every translation
 const john = bookIndex.get('JOH')!;

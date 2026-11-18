@@ -598,7 +598,7 @@
 <style>
   .player {
     position: fixed;
-    left: 50%;
+    left: calc(50% - var(--xref-space, 0px) / 2);
     bottom: calc(12px + env(safe-area-inset-bottom));
     z-index: 29;
     transform: translateX(-50%);

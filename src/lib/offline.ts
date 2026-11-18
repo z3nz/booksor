@@ -3,6 +3,7 @@
 import { BOOKS, chapterUrl } from './books.ts';
 import { helpUrl, SITUATIONS } from './situations.ts';
 import { translationById } from './translations.ts';
+import { xrefUrl } from './xref.ts';
 
 export interface OfflineManifest {
   version: string;
@@ -50,11 +51,18 @@ export function pageUrls(tr: string): string[] {
   ];
 }
 
-/** Data the search box and verse of the day need. */
+/** Data the search box, verse of the day and related passages need. */
 export function dataUrls(tr: string): string[] {
   const lang = translationById.get(tr)?.language ?? 'en';
-  return [`/search/${tr}.json`, `/search/words-${lang}.json`, `/votd/${tr}.json`];
+  return [`/search/${tr}.json`, `/search/words-${lang}.json`, `/votd/${tr}.json`, ...xrefUrls()];
 }
+
+/** Cross-references, one file per chapter, shared by every translation */
+export const xrefUrls = () => BOOKS.flatMap((b) => Array.from({ length: b.chapters }, (_, i) => xrefUrl(b.slug, i + 1)));
+
+/** Data shared with other translations: all of the same language, or all of them */
+export const sharedBy = (url: string): 'language' | 'all' | null =>
+  url.startsWith('/xref/') ? 'all' : url.includes('/words-') ? 'language' : null;
 
 const abs = (path: string) => new URL(path, window.location.origin).href;
 const MATCH = { ignoreVary: true, ignoreSearch: true };
@@ -69,11 +77,9 @@ export async function offlineStatus(tr: string): Promise<OfflineStatus | null> {
   const m = await loadManifest();
   if (!m || !offlineSupported()) return null;
   const [pages, data] = await Promise.all([caches.open(m.pagesCache), caches.open(m.dataCache)]);
-  const saved = new Set((await pages.keys()).map((r) => r.url));
-  const urls = pageUrls(tr);
-  let done = urls.filter((u) => saved.has(abs(u))).length;
-  for (const u of dataUrls(tr)) if (await data.match(abs(u), MATCH)) done++;
-  return { done, total: urls.length + dataUrls(tr).length };
+  const saved = new Set([...(await pages.keys()), ...(await data.keys())].map((r) => r.url));
+  const urls = [...pageUrls(tr), ...dataUrls(tr)];
+  return { done: urls.filter((u) => saved.has(abs(u))).length, total: urls.length };
 }
 
 /**
@@ -91,17 +97,18 @@ export async function downloadTranslation(
   await navigator.storage?.persist?.().catch(() => false);
 
   const [pages, data] = await Promise.all([caches.open(m.pagesCache), caches.open(m.dataCache)]);
-  const saved = new Set((await pages.keys()).map((r) => r.url));
+  const saved = new Set([...(await pages.keys()), ...(await data.keys())].map((r) => r.url));
   const jobs: { url: string; cache: Cache }[] = [];
   let done = 0;
   for (const u of pageUrls(tr)) {
     if (saved.has(abs(u))) done++;
     else jobs.push({ url: u, cache: pages });
   }
-  for (const u of dataUrls(tr)) {
-    if (await data.match(abs(u), MATCH)) done++;
-    else jobs.unshift({ url: u, cache: data }); // search data first: it's the most useful offline
-  }
+  // Search data first (it's the most useful offline), then pages, then related passages
+  const data_ = dataUrls(tr).filter((u) => (saved.has(abs(u)) ? (done++, false) : true));
+  const [search, xrefs] = [data_.filter((u) => !u.startsWith('/xref/')), data_.filter((u) => u.startsWith('/xref/'))];
+  jobs.unshift(...search.map((url) => ({ url, cache: data })));
+  jobs.push(...xrefs.map((url) => ({ url, cache: data })));
   const total = done + jobs.length;
   onProgress(done, total);
 
@@ -120,8 +127,11 @@ export async function downloadTranslation(
   await Promise.all(Array.from({ length: 6 }, worker));
 }
 
-/** Remove a downloaded translation. Pages you're keeping for another translation stay. */
-export async function removeTranslation(tr: string, keepLanguage: boolean): Promise<void> {
+/**
+ * Remove a downloaded translation. Data that other downloaded translations still use stays:
+ * `keep.language` when one in the same language is downloaded, `keep.all` when any is.
+ */
+export async function removeTranslation(tr: string, keep: { language: boolean; all: boolean }): Promise<void> {
   const m = await loadManifest();
   if (!m) return;
   const [pages, data] = await Promise.all([caches.open(m.pagesCache), caches.open(m.dataCache)]);
@@ -130,7 +140,8 @@ export async function removeTranslation(tr: string, keepLanguage: boolean): Prom
     if (req.url === prefix || req.url.startsWith(prefix + '/')) await pages.delete(req);
   }
   for (const u of dataUrls(tr)) {
-    if (keepLanguage && u.includes('/words-')) continue; // another downloaded translation still uses it
+    const shared = sharedBy(u);
+    if ((shared === 'language' && keep.language) || (shared === 'all' && keep.all)) continue;
     await data.delete(abs(u), MATCH);
   }
 }

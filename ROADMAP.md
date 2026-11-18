@@ -47,7 +47,9 @@ A free, fast, beautiful Bible site at **booksor.com**.
 - [x] **M** Cross-translation search: a quote in any hosted translation's wording finds the verse
 - [ ] **S–M** Phrase matching across translations (short quotes like "love is patient" rank 4th in KJV today)
 - [ ] **M–L** Search by meaning ("I feel alone" finds verses without those exact words) — Workers AI + Vectorize free tiers
-- [ ] **S–M** Cross-references: verses related to the one you're reading (OpenBible.info, ~340k links)
+- [x] **M** Cross-references: tap a verse → Related, or Study mode (counts on every verse, panel docked beside the text on wide screens). 343k links from OpenBible.info (CC BY), ranked by votes; follow a reference and the panel stays with a trail back; phones get a sheet that shrinks to a bar for stepping through references. Included in offline downloads
+- [ ] **S** Cross-references: a verse study page per verse (`/bsb/john/3/16`) for search engines, once pages render on demand
+- [ ] **S** Cross-references: filter by Old/New Testament or book; "most helpful only" toggle
 - [ ] **S** Side-by-side translations
 - [ ] **M** Reading plans (Bible in a year, streaks)
 - [x] **M** Real audio for read-aloud, so it keeps playing with the phone locked (with lock-screen controls): Bob Souer's BSB narration (public domain; Berean asked us to rehost it and link BereanBible.com), 64 kbps MP3s on R2 at audio.booksor.com (`scripts/audio.ts`)

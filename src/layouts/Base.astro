@@ -50,7 +50,7 @@ const canonical = new URL(Astro.url.pathname.replace(/\.html$/, '').replace(/\/$
     <meta property="og:url" content={canonical} />
     <meta name="twitter:card" content="summary" />
     <!--
-      Apply saved theme, text size and focus mode before the page paints (no flash). Pages change
+      Apply saved theme, text size, focus and study mode before the page paints (no flash). Pages change
       without a full reload, which resets these on <html>, so they're applied again after each swap.
     -->
     <script is:inline>
@@ -62,6 +62,7 @@ const canonical = new URL(Astro.url.pathname.replace(/\.html$/, '').replace(/\/$
             if (s.theme && s.theme !== 'system') r.dataset.theme = s.theme;
             if (s.size) r.style.setProperty('--reader-size', s.size + 'px');
             r.toggleAttribute('data-focus', !!s.focus);
+            r.toggleAttribute('data-study', !!s.study);
             r.toggleAttribute('data-offline', !navigator.onLine);
           } catch {}
         };

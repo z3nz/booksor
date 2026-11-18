@@ -1,11 +1,13 @@
 <script lang="ts">
-  // Under the chapter title: Listen (handled by the site-wide ListenPlayer), auto-scroll, and focus mode.
+  // Under the chapter title: Listen (handled by the site-wide ListenPlayer), auto-scroll, focus mode, and
+  // study mode (cross-reference counts on each verse; the CrossRefs panel does the rest).
   import { onMount } from 'svelte';
   import { navigate } from 'astro:transitions/client';
   import Icon from './Icon.svelte';
   import { chapterPath, LISTEN_STATE, listenState, requestListen, type ListenState } from '../lib/listen.ts';
   import { loadSettings, updateSettings } from '../lib/prefs.ts';
   import { scrollPixelsPerSecond } from '../lib/speech.ts';
+  import { STUDY_EVENT } from '../lib/xref.ts';
 
   let { nextUrl }: { nextUrl: string | null } = $props();
 
@@ -20,6 +22,7 @@
   let scrollSpeed = $state(3);
   let continueNext = $state(true);
   let focus = $state(false);
+  let study = $state(false);
 
   let raf = 0;
   let lastTime = 0;
@@ -132,6 +135,14 @@
     updateSettings({ focus });
   }
 
+  // --- Study ---
+
+  function toggleStudy() {
+    study = !study;
+    updateSettings({ study });
+    window.dispatchEvent(new CustomEvent(STUDY_EVENT, { detail: study }));
+  }
+
   // Keep the selected-verse bar and the end of the page clear of the auto-scroll bar
   const setSpace = () => document.documentElement.style.setProperty('--scroll-space', scrolling ? `${barHeight + 12}px` : '0px');
   $effect(setSpace);
@@ -141,6 +152,7 @@
     scrollSpeed = s.scrollSpeed;
     continueNext = s.continueNext;
     focus = s.focus;
+    study = s.study;
     showListenState(listenState());
 
     // Keep scrolling from the previous chapter
@@ -182,6 +194,9 @@
   </button>
   <button class="btn tool" aria-pressed={focus} onclick={toggleFocus}>
     <Icon name="focus" size={16} />Focus
+  </button>
+  <button class="btn tool" aria-pressed={study} onclick={toggleStudy} title="Show related passages for each verse">
+    <Icon name="study" size={16} />Study
   </button>
 </div>
 
@@ -246,7 +261,7 @@
   .exit-focus {
     position: fixed;
     top: 12px;
-    right: 12px;
+    right: calc(12px + var(--xref-space, 0px));
     z-index: 25;
     min-height: 34px;
     font-size: 13px;
@@ -259,7 +274,7 @@
   }
   .scroller {
     position: fixed;
-    left: 50%;
+    left: calc(50% - var(--xref-space, 0px) / 2);
     /* Sits above the read-aloud player if both are open */
     bottom: calc(12px + var(--listen-space, 0px) + env(safe-area-inset-bottom));
     z-index: 29;

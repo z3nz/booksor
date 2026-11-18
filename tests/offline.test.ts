@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { BOOKS } from '../src/lib/books.ts';
-import { dataUrls, formatSize, pageUrls } from '../src/lib/offline.ts';
+import { dataUrls, formatSize, pageUrls, sharedBy } from '../src/lib/offline.ts';
 import { SITUATIONS } from '../src/lib/situations.ts';
 
 describe('offline downloads', () => {
@@ -16,8 +16,14 @@ describe('offline downloads', () => {
     expect(urls.every((u) => u.startsWith('/kjv'))).toBe(true);
   });
 
-  it('includes the search data for the translation and its language', () => {
-    expect(dataUrls('web')).toEqual(['/search/web.json', '/search/words-en.json', '/votd/web.json']);
+  it('includes the search data for the translation and its language, and every chapter’s related passages', () => {
+    const urls = dataUrls('web');
+    expect(urls.slice(0, 3)).toEqual(['/search/web.json', '/search/words-en.json', '/votd/web.json']);
+    expect(urls).toHaveLength(3 + 1189);
+    expect(urls).toContain('/xref/john/3.json');
+    expect(sharedBy('/xref/john/3.json')).toBe('all');
+    expect(sharedBy('/search/words-en.json')).toBe('language');
+    expect(sharedBy('/search/web.json')).toBeNull();
   });
 
   it('formats sizes', () => {

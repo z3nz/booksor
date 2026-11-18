@@ -10,6 +10,7 @@
     "check": "astro check",
     "test": "vitest run",
     "data": "node scripts/fetch-sources.ts && node scripts/build-db.ts && node scripts/export-static.ts",
+    "xref:update": "curl -fL -o data/cross-references.zip https://a.openbible.info/data/cross-references.zip && pnpm data",
     "deploy": "astro build && wrangler deploy",
     "deploy:www": "wrangler deploy --config workers/www-redirect/wrangler.jsonc",
     "ci:build": "pnpm data && pnpm test && pnpm build"

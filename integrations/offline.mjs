@@ -39,7 +39,9 @@ export default function offline() {
           .map((f) => urlPath(dist, f))
           .filter((p) => !/\.woff2?$/.test(p) || /-latin-wght-normal\./.test(p));
 
-        const dataFiles = [...walk(join(dist, 'search')), ...walk(join(dist, 'votd'))];
+        const xrefFiles = walk(join(dist, 'xref'));
+        const dataFiles = [...walk(join(dist, 'search')), ...walk(join(dist, 'votd')), ...xrefFiles];
+        const xrefBytes = xrefFiles.reduce((n, f) => n + statSync(f).size, 0);
         const dataVersion = hashFiles(dataFiles);
         const shellHtml = SHELL.map((p) => join(dist, p === '/' ? 'index.html' : `${p.slice(1)}.html`));
         const version = hashFiles([...shellHtml, join(fileURLToPath(new URL('../src/service-worker.js', import.meta.url)))]) +
@@ -51,8 +53,11 @@ export default function offline() {
           const pages = walk(join(dist, t.id)).filter((f) => f.endsWith('.html'));
           const data = [`search/${t.id}.json`, `search/words-${t.language}.json`, `votd/${t.id}.json`];
           sizes[t.id] = {
-            pages: pages.length + 1, // + the translation's book list
-            bytes: pages.reduce((n, f) => n + statSync(f).size, size(`${t.id}.html`)) + data.reduce((n, p) => n + size(p), 0),
+            pages: pages.length + 1 + xrefFiles.length, // + the translation's book list and related passages
+            bytes:
+              pages.reduce((n, f) => n + statSync(f).size, size(`${t.id}.html`)) +
+              data.reduce((n, p) => n + size(p), 0) +
+              xrefBytes,
           };
         }
 

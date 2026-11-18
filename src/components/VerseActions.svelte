@@ -20,6 +20,7 @@
     type PassageRef,
   } from '../lib/library.ts';
   import { compressVerses, copyText, shareOrCopy, shareOrDownloadImage, verseImage } from '../lib/share.ts';
+  import { VERSE_SELECTION, XREF_OPEN, type VerseSelection } from '../lib/xref.ts';
 
   let {
     tr,
@@ -44,6 +45,8 @@
   );
   const marks = $derived(chapterMarks(lib, bookIdx, chapter));
   const selectedColors = $derived(new Set(selected.map((v) => marks.highlights.get(v))));
+  /** Selected verses that have cross-references */
+  const hasRelated = $derived(selected.some((v) => verseEl(v)?.querySelector('.xn')));
   const bookmarked = $derived(!!(selection && lib.passages[passageKey(selection)]?.bm));
   const hasNote = $derived(!!(selection && lib.passages[passageKey(selection)]?.note));
 
@@ -71,6 +74,13 @@
       el.classList.remove('target');
     }
     history.replaceState(history.state, '', window.location.pathname + hashFor(selected));
+    window.dispatchEvent(new CustomEvent<VerseSelection>(VERSE_SELECTION, { detail: { verses: selected } }));
+  }
+
+  function openRelated() {
+    window.dispatchEvent(new CustomEvent<VerseSelection>(XREF_OPEN, { detail: { verses: selected } }));
+    // On phones the list opens as a sheet over the bottom of the page, where this bar is
+    if (!window.matchMedia('(min-width: 1100px)').matches) setSelected([]);
   }
 
   /**
@@ -289,6 +299,9 @@
       <button class="btn" aria-pressed={bookmarked} onclick={toggleBookmark}>
         <Icon name="bookmark" size={16} filled={bookmarked} />{bookmarked ? 'Saved' : 'Bookmark'}
       </button>
+      {#if hasRelated}
+        <button class="btn" onclick={openRelated}><Icon name="related" size={16} />Related</button>
+      {/if}
       <button class="btn" onclick={copy}><Icon name="copy" size={16} />Copy</button>
       <button class="btn" onclick={link}><Icon name="link" size={16} />Link</button>
       <button class="btn" onclick={share}><Icon name="share" size={16} />Share</button>
@@ -321,7 +334,7 @@
 <style>
   .bar {
     position: fixed;
-    left: 50%;
+    left: calc(50% - var(--xref-space, 0px) / 2);
     bottom: calc(16px + var(--listen-space, 0px) + var(--scroll-space, 0px) + env(safe-area-inset-bottom));
     z-index: 30;
     transform: translateX(-50%);
@@ -397,7 +410,7 @@
   }
   .toast {
     position: fixed;
-    left: 50%;
+    left: calc(50% - var(--xref-space, 0px) / 2);
     top: 76px;
     z-index: 50;
     transform: translateX(-50%);

@@ -7,7 +7,8 @@
 //   booksor-assets       scripts, styles, fonts, icons. File names change when their content does,
 //                        so once saved they never need fetching again.
 //   booksor-pages        HTML pages, keyed by clean URL. Online we always ask the network first.
-//   booksor-data-<hash>  search and verse-of-the-day data. Replaced when the Bible data changes.
+//   booksor-data-<hash>  search, verse-of-the-day and cross-reference data. Replaced when the Bible
+//                        data changes.
 
 const CONFIG = /* CONFIG */ { version: 'dev', dataCache: 'booksor-data-dev', assets: [], shell: [] };
 
@@ -67,7 +68,7 @@ self.addEventListener('fetch', (event) => {
 
   if (url.pathname.startsWith('/_astro/')) {
     event.respondWith(cacheFirst(req, ASSETS));
-  } else if (url.pathname.startsWith('/search/') || url.pathname.startsWith('/votd/')) {
+  } else if (/^\/(search|votd|xref)\//.test(url.pathname)) {
     event.respondWith(cacheFirst(req, DATA));
   } else if (req.mode === 'navigate' || (req.headers.get('accept') || '').includes('text/html') || looksLikePage(url)) {
     event.respondWith(page(event, url));

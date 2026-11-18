@@ -8,6 +8,8 @@ export interface Settings {
   size: number;
   /** Hide everything but the text on chapter pages */
   focus: boolean;
+  /** Show how many cross-references each verse has (and, on wide screens, keep them open alongside) */
+  study: boolean;
   /** Read-aloud speed (1 = normal) and chosen voice name ('' = best available) */
   rate: number;
   voice: string;
@@ -23,6 +25,7 @@ export const DEFAULT_SETTINGS: Settings = {
   theme: 'system',
   size: 19,
   focus: false,
+  study: false,
   rate: 1,
   voice: '',
   narrator: true,
@@ -74,6 +77,7 @@ export function applySettings(s: Settings) {
   else root.dataset.theme = s.theme;
   root.style.setProperty('--reader-size', `${s.size}px`);
   root.toggleAttribute('data-focus', s.focus);
+  root.toggleAttribute('data-study', s.study);
 }
 
 export function preferredTranslation(): string {

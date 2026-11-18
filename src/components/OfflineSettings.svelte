@@ -77,13 +77,15 @@
 
   async function remove() {
     const lang = translationById.get(tr)?.language;
-    let keepLanguage = false;
+    const keep = { language: false, all: false };
     for (const other of TRANSLATIONS) {
-      if (other.id === tr || other.language !== lang) continue;
+      if (other.id === tr) continue;
       const s = await offlineStatus(other.id);
-      if (s && s.done >= s.total) keepLanguage = true;
+      if (!s || s.done < s.total) continue;
+      keep.all = true;
+      if (other.language === lang) keep.language = true;
     }
-    await removeTranslation(tr, keepLanguage);
+    await removeTranslation(tr, keep);
     await refresh();
   }
 

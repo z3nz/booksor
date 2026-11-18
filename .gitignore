@@ -6,4 +6,5 @@ data/raw/
 data/bible.sqlite
 public/search/
 public/votd/
+public/xref/
 .DS_Store

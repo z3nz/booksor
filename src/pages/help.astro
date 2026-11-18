@@ -1,0 +1,114 @@
+---
+import Base from '../layouts/Base.astro';
+import SearchBox from '../components/SearchBox.svelte';
+import { GROUPS, helpUrl, SITUATIONS } from '../lib/situations.ts';
+import { DEFAULT_TRANSLATION } from '../lib/translations.ts';
+---
+
+<Base
+  title="What are you going through? Bible verses for every situation – Booksor"
+  description="Bible verses for anxiety, grief, loneliness, fear, anger, depression, doubt and more. Find comfort and strength for whatever you're facing."
+  showSearch={false}
+>
+  <div class="container hub">
+    <h1>What are you going through?</h1>
+    <p class="lead">Pick what’s on your heart, or describe it in your own words.</p>
+    <div class="search">
+      <SearchBox client:load variant="hero" placeholder="Try “I feel anxious” or “lost my job”" />
+    </div>
+
+    {
+      GROUPS.map((g) => (
+        <section class="group" aria-labelledby={`group-${g.id}`}>
+          <h2 id={`group-${g.id}`} class="eyebrow">
+            {g.label}
+          </h2>
+          <ul class="grid">
+            {SITUATIONS.filter((s) => s.group === g.id).map((s) => (
+              <li>
+                <a class="tile card" href={helpUrl(DEFAULT_TRANSLATION, s.slug)} data-tr-link>
+                  <span class="title">{s.title}</span>
+                  <span class="intro">{s.intro}</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))
+    }
+  </div>
+</Base>
+
+<script>
+  import { followPreferredTranslation } from '../lib/links.ts';
+  followPreferredTranslation();
+</script>
+
+<style>
+  .hub {
+    max-width: 1000px;
+    padding-top: clamp(28px, 6vw, 56px);
+  }
+  h1 {
+    margin: 0;
+    font-family: var(--font-reading);
+    font-size: clamp(32px, 6vw, 48px);
+    font-weight: 600;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    text-align: center;
+  }
+  .lead {
+    margin: 12px auto 24px;
+    color: var(--muted);
+    font-size: 18px;
+    text-align: center;
+  }
+  .search {
+    max-width: 640px;
+    margin: 0 auto 40px;
+  }
+  .group + .group {
+    margin-top: 32px;
+  }
+  .group h2 {
+    margin: 0 0 12px;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 12px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .tile {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    height: 100%;
+    padding: 16px 18px;
+    color: var(--text);
+    text-decoration: none;
+    box-shadow: none;
+    transition: border-color 0.15s, transform 0.15s;
+  }
+  .tile:hover {
+    border-color: var(--accent);
+  }
+  .title {
+    font-family: var(--font-reading);
+    font-size: 19px;
+    font-weight: 600;
+  }
+  .intro {
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.45;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+  }
+</style>

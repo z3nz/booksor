@@ -12,8 +12,8 @@ interface Props {
   description: string;
   /** Translation this page shows. Pages without one (home, about) follow the reader's saved choice. */
   translation?: string;
-  /** Where the translation switcher should keep you */
-  location?: { slug: string; chapter: number };
+  /** Where the translation switcher should keep you: the path after the translation, e.g. "john/3" */
+  location?: string;
   showSearch?: boolean;
   /** Keep this page out of search engines (e.g. the reader's own Saved page) */
   noindex?: boolean;
@@ -87,6 +87,7 @@ const canonical = new URL(Astro.url.pathname.replace(/\.html$/, '').replace(/\/$
       <div class="container footer-inner">
         <p>Booksor — read, search and share the Bible. Free, no ads, no tracking.</p>
         <nav aria-label="Footer">
+          <a href="/help">Verses for hard times</a>
           <a href="/saved">Saved</a>
           <a href="/about">About &amp; licenses</a>
           <a href="/kjv">KJV</a>

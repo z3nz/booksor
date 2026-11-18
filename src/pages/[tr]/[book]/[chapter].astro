@@ -49,7 +49,7 @@ const description = `${book.name} ${chapter} (${t.abbr}): ${intro.length > 150 ?
   title={`${book.name} ${chapter} (${t.abbr}) – Booksor`}
   description={description}
   translation={t.id}
-  location={{ slug: book.slug, chapter }}
+  location={`${book.slug}/${chapter}`}
 >
   <article class="chapter container">
     <header class="chapter-head">

@@ -1,0 +1,215 @@
+---
+import type { GetStaticPaths } from 'astro';
+import Base from '../../../layouts/Base.astro';
+import CareNote from '../../../components/CareNote.svelte';
+import { BOOKS, chapterUrl } from '../../../lib/books.ts';
+import { getVerses } from '../../../lib/db.ts';
+import { formatReference, parseReference } from '../../../lib/reference.ts';
+import { GROUPS, helpUrl, SITUATIONS, type Situation } from '../../../lib/situations.ts';
+import { plainText, verseHtml } from '../../../lib/text.ts';
+import { TRANSLATIONS } from '../../../lib/translations.ts';
+import type { Translation } from '../../../lib/types.ts';
+
+export const getStaticPaths = (() =>
+  TRANSLATIONS.flatMap((t) => SITUATIONS.map((s) => ({ params: { tr: t.id, slug: s.slug }, props: { t, s } })))) satisfies GetStaticPaths;
+
+interface Props {
+  t: Translation;
+  s: Situation;
+}
+
+const { t, s } = Astro.props;
+const group = GROUPS.find((g) => g.id === s.group)!;
+const related = SITUATIONS.filter((o) => o.group === s.group && o !== s);
+
+const passages = s.verses.map((input) => {
+  const ref = parseReference(input);
+  if (!ref?.verse) throw new Error(`Bad reference "${input}" in situation "${s.slug}"`);
+  const verses = getVerses(t.id, BOOKS.indexOf(ref.book), ref.chapter, ref.verse, ref.endVerse ?? ref.verse);
+  if (!verses.length) throw new Error(`${input} is missing from ${t.abbr} (situation "${s.slug}")`);
+  return {
+    label: formatReference(ref),
+    url: chapterUrl(t.id, ref.book, ref.chapter, ref.verse, ref.endVerse),
+    verses,
+    multi: verses.length > 1,
+  };
+});
+
+const first = plainText(passages[0].verses.map((v) => v.t).join(' '), t.suppliedWords);
+const description = `${s.intro} ${passages.length} Bible verses (${t.abbr}), starting with ${passages[0].label}: “${first.length > 90 ? first.slice(0, 87).trimEnd() + '…' : first}”`;
+---
+
+<Base
+  title={`Bible verses for ${s.title.toLowerCase()} (${t.abbr}) – Booksor`}
+  description={description}
+  translation={t.id}
+  location={`help/${s.slug}`}
+>
+  <article class="situation container">
+    <nav class="crumbs" aria-label="Breadcrumb">
+      <a href="/help">What are you going through?</a>
+      <span aria-hidden="true">›</span>
+      <span>{group.label}</span>
+    </nav>
+    <h1>{s.title}</h1>
+    <p class="intro">{s.intro}</p>
+
+    {s.care && <CareNote kind={s.care} />}
+
+    <ol class="passages">
+      {
+        passages.map((p) => (
+          <li class="passage card">
+            <blockquote class="reading" lang={t.language} dir={t.dir}>
+              {p.verses.map((v) => (
+                <>
+                  {p.multi && <sup class="vn">{v.v}</sup>}
+                  <span set:html={verseHtml(v.t, t.suppliedWords)} />{' '}
+                </>
+              ))}
+            </blockquote>
+            <div class="passage-foot">
+              <a class="ref" href={p.url}>
+                {p.label}
+              </a>
+              <a class="context" href={p.url}>
+                Read in context →
+              </a>
+            </div>
+          </li>
+        ))
+      }
+    </ol>
+
+    <p class="note">
+      Verses chosen by the Booksor team. Tap a reference to read the whole chapter, or try searching for what you’re going
+      through.
+    </p>
+
+    <section class="related" aria-labelledby="related-heading">
+      <h2 id="related-heading" class="eyebrow">More in {group.label.toLowerCase()}</h2>
+      <div class="chips">
+        {
+          related.map((o) => (
+            <a class="btn" href={helpUrl(t.id, o.slug)}>
+              {o.title}
+            </a>
+          ))
+        }
+        <a class="btn all" href="/help">
+          All situations
+        </a>
+      </div>
+    </section>
+
+    <p class="attribution">{t.attribution} <a href="/about">Licenses</a></p>
+  </article>
+</Base>
+
+<style>
+  .situation {
+    max-width: 720px;
+    padding-top: 24px;
+  }
+  .crumbs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .crumbs a {
+    color: var(--muted);
+  }
+  h1 {
+    margin: 12px 0 8px;
+    font-family: var(--font-reading);
+    font-size: clamp(30px, 6vw, 42px);
+    font-weight: 600;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+  }
+  .intro {
+    margin: 0 0 20px;
+    color: var(--muted);
+    font-size: 18px;
+    line-height: 1.5;
+  }
+  .passages {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin: 24px 0 0;
+    padding: 0;
+    list-style: none;
+  }
+  .passage {
+    padding: 18px 20px 14px;
+  }
+  blockquote {
+    margin: 0;
+    font-size: var(--reader-size);
+    line-height: 1.65;
+  }
+  blockquote :global(em.added) {
+    font-style: italic;
+    opacity: 0.85;
+  }
+  .vn {
+    margin-right: 0.2em;
+    font-family: var(--font-ui);
+    font-size: 0.58em;
+    font-weight: 600;
+    color: var(--verse-num);
+  }
+  .passage-foot {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 4px 12px;
+    margin-top: 10px;
+    font-size: 14px;
+  }
+  .ref {
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .context {
+    color: var(--muted);
+    text-decoration: none;
+  }
+  .context:hover {
+    color: var(--accent);
+  }
+  .note {
+    margin: 24px 0 0;
+    color: var(--muted);
+    font-size: 14px;
+  }
+  .related {
+    margin-top: 36px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+  }
+  .related h2 {
+    margin: 0 0 12px;
+  }
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .chips .btn {
+    min-height: 34px;
+    font-size: 13px;
+  }
+  .chips .all {
+    color: var(--accent);
+  }
+  .attribution {
+    margin-top: 32px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+</style>

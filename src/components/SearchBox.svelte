@@ -3,11 +3,17 @@
   import { BOOKS, bookIndex, chapterUrl } from '../lib/books.ts';
   import { formatReference, parseReference } from '../lib/reference.ts';
   import { highlight } from '../lib/terms.ts';
+  import { describesSelf, helpUrl, isCrisisQuery, matchSituations, soundsPersonal } from '../lib/situations.ts';
+  import CareNote from './CareNote.svelte';
   import { preferredTranslation, TRANSLATION_EVENT } from '../lib/prefs.ts';
   import { translationById } from '../lib/translations.ts';
   import type { SearchHit, SearchRequest, SearchResponse } from '../lib/search.worker.ts';
 
-  let { variant = 'compact', translation }: { variant?: 'hero' | 'compact'; translation?: string } = $props();
+  let {
+    variant = 'compact',
+    translation,
+    placeholder,
+  }: { variant?: 'hero' | 'compact'; translation?: string; placeholder?: string } = $props();
 
   let tr = $state('kjv');
   let q = $state('');
@@ -30,7 +36,19 @@
   const ref = $derived(parseReference(q));
   const refUrl = $derived(ref ? chapterUrl(tr, ref.book, ref.chapter, ref.verse, ref.endChapter ? undefined : ref.endVerse) : null);
   const textSearch = $derived(q.trim().length >= 2 && (!ref || ref.bookOnly));
-  const items = $derived([...(ref && refUrl ? [refUrl] : []), ...hits.map((h) => chapterUrl(tr, BOOKS[h.b], h.c, h.v))]);
+  // "I'm struggling with anxiety", "lonely", "lost my job" -> curated situation pages
+  const situations = $derived(ref && !ref.bookOnly ? [] : matchSituations(q));
+  const crisis = $derived(isCrisisQuery(q));
+  const offerAll = $derived(!situations.length && soundsPersonal(q));
+  // Word matches for "I want to…" or "struggling with…" are noise next to a matching situation
+  const shownHits = $derived(crisis || (situations.length && (partial || describesSelf(q))) ? [] : hits);
+  const situationUrls = $derived([...situations.map((m) => helpUrl(tr, m.situation.slug)), ...(offerAll ? ['/help'] : [])]);
+  const items = $derived([
+    ...(ref && refUrl ? [refUrl] : []),
+    ...situationUrls,
+    ...shownHits.map((h) => chapterUrl(tr, BOOKS[h.b], h.c, h.v)),
+  ]);
+  const hitOffset = $derived((ref && refUrl ? 1 : 0) + situationUrls.length);
   const abbr = $derived(translationById.get(tr)?.abbr ?? tr.toUpperCase());
 
   onMount(() => {
@@ -168,7 +186,7 @@
       }}
       onkeydown={onKeydown}
       type="search"
-      placeholder={variant === 'hero' ? 'Search “the Lord is my shepherd” or go to “jn 3:16”' : 'Search or go to a verse…'}
+      placeholder={placeholder ?? (variant === 'hero' ? 'Try “the Lord is my shepherd”, “jn 3:16” or “anxious”' : 'Search or go to a verse…')}
       aria-label="Search the Bible"
       autocomplete="off"
       spellcheck="false"
@@ -183,6 +201,10 @@
 
   {#if showPanel}
     <div class="panel" id="search-results-{variant}" role="listbox" aria-label="Search results">
+      {#if crisis}
+        <CareNote kind="crisis" compact />
+      {/if}
+
       {#if ref && refUrl}
         <a class="result ref" href={refUrl} data-active={active === 0} role="option" aria-selected={active === 0}>
           <span class="label">{ref.bookOnly ? 'Open book' : 'Go to'}</span>
@@ -195,18 +217,42 @@
         </a>
       {/if}
 
-      {#if textSearch}
+      {#each situations as m, i (m.situation.slug)}
+        {@const idx = i + (ref && refUrl ? 1 : 0)}
+        <a
+          class="result situation"
+          href={helpUrl(tr, m.situation.slug)}
+          data-active={active === idx}
+          role="option"
+          aria-selected={active === idx}
+          onmouseenter={() => (active = idx)}
+        >
+          <span class="label">Verses for</span>
+          <span class="title">{m.situation.title}</span>
+          <span class="meta">{m.situation.intro}</span>
+        </a>
+      {/each}
+      {#if offerAll}
+        {@const idx = ref && refUrl ? 1 : 0}
+        <a class="result situation" href="/help" data-active={active === idx} role="option" aria-selected={active === idx}>
+          <span class="label">Going through something?</span>
+          <span class="title">Find verses for what you’re facing</span>
+          <span class="meta">Anxiety, grief, loneliness, fear, doubt and more</span>
+        </a>
+      {/if}
+
+      {#if textSearch && !crisis && (shownHits.length || !situationUrls.length)}
         {#if status === 'loading' && !hits.length}
           <div class="status">Loading search…</div>
         {:else if status === 'error'}
           <div class="status">Search couldn’t load. Check your connection and try again.</div>
-        {:else if hits.length}
+        {:else if shownHits.length}
           <div class="status">
             {partial ? 'No verse has all of those words. Closest matches: ' : ''}
-            {total > hits.length ? `Top ${hits.length} of ${total.toLocaleString()} verses` : `${hits.length} ${hits.length === 1 ? 'verse' : 'verses'}`}
+            {total > shownHits.length ? `Top ${shownHits.length} of ${total.toLocaleString()} verses` : `${shownHits.length} ${shownHits.length === 1 ? 'verse' : 'verses'}`}
           </div>
-          {#each hits as h, i (h.b + ':' + h.c + ':' + h.v)}
-            {@const idx = i + (ref ? 1 : 0)}
+          {#each shownHits as h, i (h.b + ':' + h.c + ':' + h.v)}
+            {@const idx = i + hitOffset}
             <a
               class="result"
               href={chapterUrl(tr, BOOKS[h.b], h.c, h.v)}
@@ -222,7 +268,7 @@
               <span class="text reading">{@html highlight(h.t, h.terms)}</span>
             </a>
           {/each}
-        {:else if status === 'ready' && !ref}
+        {:else if status === 'ready' && !ref && !situationUrls.length}
           <div class="status">No verses found for “{q}”.</div>
         {/if}
       {/if}
@@ -336,6 +382,15 @@
     border-color: var(--accent);
     background: color-mix(in srgb, var(--accent) 6%, var(--surface));
   }
+  .result.situation {
+    border-color: color-mix(in srgb, var(--accent) 30%, var(--border));
+    background: color-mix(in srgb, var(--accent) 4%, var(--surface));
+  }
+  .result.situation .title {
+    font-family: var(--font-reading);
+    font-size: 18px;
+  }
+  .result.situation .label,
   .result.ref .label {
     font-size: 12px;
     font-weight: 600;

@@ -3,7 +3,8 @@
   import { TRANSLATIONS, DEFAULT_TRANSLATION, translationById } from '../lib/translations.ts';
   import { preferredTranslation, setPreferredTranslation } from '../lib/prefs.ts';
 
-  let { current, location }: { current?: string; location?: { slug: string; chapter: number } } = $props();
+  // `location` is the rest of the path after the translation, e.g. "john/3" or "help/anxiety"
+  let { current, location }: { current?: string; location?: string } = $props();
 
   let value = $state(DEFAULT_TRANSLATION);
   const name = $derived(translationById.get(value)?.name ?? '');
@@ -19,7 +20,7 @@
 
   function change() {
     setPreferredTranslation(value);
-    if (location) window.location.href = `/${value}/${location.slug}/${location.chapter}${window.location.hash}`;
+    if (location) window.location.href = `/${value}/${location}${window.location.hash}`;
     else if (current) window.location.href = `/${value}`;
   }
 </script>

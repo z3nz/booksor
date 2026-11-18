@@ -34,7 +34,7 @@ A free, fast, beautiful Bible site at **booksor.com**.
 - [ ] **M** Bible translations in many languages (eBible.org imports)
 - [ ] **M** Site menus in multiple languages
 - [ ] **M** Switch chapter pages to on-demand rendering with edge caching once we near the 20k-file limit (Astro Cloudflare adapter + D1 or R2)
-- [ ] **M** "I'm struggling with…" situation search: free topic lists (OpenBible.info topics, Nave's Topical Bible) plus our own curated list
+- [x] **M** "I'm struggling with…" situation search: 40 curated situations (`data/situations.json`) with topic pages, a `/help` hub, search cards, and crisis resources for sensitive topics
 - [x] **M** Reading mode: read aloud using the browser's built-in voices (speed, voice, verse highlighting, continues into the next chapter), auto-scroll, focus mode
 - [x] **M** Bookmarks, highlights (5 colors), notes, saved on the device (no account needed), with a Saved page and backup/restore
 - [x] **S** "Continue where you left off" on the home page
@@ -76,4 +76,5 @@ Add anything here. We'll sort it into a phase later.
 
 - Red-letter edition (words of Jesus in red)
 - Print-friendly chapter view
+- More situations, and a second pass over verse choices with pastors or readers
 - Word-by-word highlighting while listening (voices report word positions unevenly across browsers)

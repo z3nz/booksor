@@ -11,6 +11,8 @@ export interface Settings {
   /** Read-aloud speed (1 = normal) and chosen voice name ('' = best available) */
   rate: number;
   voice: string;
+  /** Use the recorded narration where there is one, instead of the device's voice */
+  narrator: boolean;
   /** Auto-scroll speed, 1–10 */
   scrollSpeed: number;
   /** Keep listening / scrolling into the next chapter */
@@ -23,6 +25,7 @@ export const DEFAULT_SETTINGS: Settings = {
   focus: false,
   rate: 1,
   voice: '',
+  narrator: true,
   scrollSpeed: 3,
   continueNext: true,
 };

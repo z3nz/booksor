@@ -50,7 +50,9 @@ A free, fast, beautiful Bible site at **booksor.com**.
 - [ ] **S–M** Cross-references: verses related to the one you're reading (OpenBible.info, ~340k links)
 - [ ] **S** Side-by-side translations
 - [ ] **M** Reading plans (Bible in a year, streaks)
-- [ ] **M** Real audio for read-aloud, so it keeps playing with the phone locked (with lock-screen controls). Options: Bob Souer's BSB narration (openbible.com; need to confirm the recordings' license), Bible Brain API, or generating our own with an open-source voice (Piper) and hosting on R2
+- [x] **M** Real audio for read-aloud, so it keeps playing with the phone locked (with lock-screen controls): Bob Souer's BSB narration (public domain; Berean asked us to rehost it and link BereanBible.com), 64 kbps MP3s on R2 at audio.booksor.com (`scripts/audio.ts`)
+- [ ] **M** Verse highlighting for the narration: verse start times per chapter (silence detection snapped to text-length estimates, or forced alignment)
+- [ ] **S** Narration for KJV too (openbible.com/audio/kjv is also public domain)
 - [ ] **S** Verse-of-the-day email/notification and embeddable widget
 
 ## Phase 4 — Down the road

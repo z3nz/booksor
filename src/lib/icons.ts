@@ -5,6 +5,8 @@ export const ICONS = {
   pause: '<rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>',
   prev: '<path d="M19 20 9 12l10-8z"/><path d="M5 19V5"/>',
   next: '<path d="m5 4 10 8-10 8z"/><path d="M19 5v14"/>',
+  back: '<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/>',
+  forward: '<path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/>',
   listen:
     '<path d="M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a9 9 0 0 1 18 0v7a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3"/>',
   scroll: '<path d="m7 13 5 5 5-5"/><path d="m7 6 5 5 5-5"/>',

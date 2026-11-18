@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { navigate } from 'astro:transitions/client';
   import { BOOKS, bookIndex, chapterUrl } from '../lib/books.ts';
   import { formatReference, parseReference } from '../lib/reference.ts';
   import { highlight } from '../lib/terms.ts';
@@ -139,7 +140,9 @@
       const url = items[active];
       if (url) {
         e.preventDefault();
-        window.location.href = url;
+        open = false;
+        input.blur();
+        void navigate(url);
       }
     } else if (e.key === 'Escape') {
       if (q) q = '';

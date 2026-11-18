@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { navigate } from 'astro:transitions/client';
   import { BOOKS, bookBySlug, chapterUrl } from '../lib/books.ts';
   import type { Book } from '../lib/types.ts';
 
@@ -20,7 +21,10 @@
   }
 
   function pick(b: Book) {
-    if (b.chapters === 1) window.location.href = chapterUrl(tr, b, 1);
+    if (b.chapters === 1) {
+      dialog.close();
+      void navigate(chapterUrl(tr, b, 1));
+    }
     else book = b;
   }
 

@@ -69,12 +69,20 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(cacheFirst(req, ASSETS));
   } else if (url.pathname.startsWith('/search/') || url.pathname.startsWith('/votd/')) {
     event.respondWith(cacheFirst(req, DATA));
-  } else if (req.mode === 'navigate' || (req.headers.get('accept') || '').includes('text/html')) {
+  } else if (req.mode === 'navigate' || (req.headers.get('accept') || '').includes('text/html') || looksLikePage(url)) {
     event.respondWith(page(event, url));
   } else if (/\.(png|svg|ico|webmanifest)$/.test(url.pathname)) {
     event.respondWith(staleWhileRevalidate(req, ASSETS));
   }
 });
+
+/**
+ * Pages change without a full reload: the site fetches the next page in the background, without
+ * saying it wants HTML. Our pages are the addresses with no file extension.
+ */
+function looksLikePage(url) {
+  return !/\.[a-z0-9]+$/i.test(url.pathname);
+}
 
 /** Same key for /kjv/john/3, /kjv/john/3.html and /kjv/john/3/ (and no query or hash) */
 function pageKey(url) {

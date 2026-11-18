@@ -54,6 +54,7 @@ import Base from '../layouts/Base.astro';
   }
 
   async function show() {
+    if (!document.getElementById('recent-list')) return; // pages change without reloading; only run on this one
     const m = await loadManifest();
     if (!m || !('caches' in window)) return;
 
@@ -94,7 +95,7 @@ import Base from '../layouts/Base.astro';
       document.getElementById('recent')!.hidden = false;
     }
   }
-  show();
+  document.addEventListener('astro:page-load', show);
 </script>
 
 <style>

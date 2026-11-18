@@ -51,16 +51,16 @@ const description = `${book.name} ${chapter} (${t.abbr}): ${intro.length > 150 ?
   translation={t.id}
   location={`${book.slug}/${chapter}`}
 >
-  <article class="chapter container">
+  <article
+    class="chapter container"
+    data-title={`${book.name} ${chapter}`}
+    data-intro={`${book.name}, chapter ${chapter}`}
+    data-lang={t.language}
+  >
     <header class="chapter-head">
       <div class="eyebrow">{t.name}</div>
       <ChapterPicker client:idle tr={t.id} slug={book.slug} chapter={chapter} />
-      <ReadingTools
-        client:load
-        lang={t.language}
-        intro={`${book.name}, chapter ${chapter}`}
-        nextUrl={next ? chapterUrl(t.id, next.book, next.chapter) : null}
-      />
+      <ReadingTools client:load nextUrl={next ? chapterUrl(t.id, next.book, next.chapter) : null} />
     </header>
 
     <div class:list={['verses', 'reading', flow ? 'flow' : 'lines']} lang={t.language} dir={t.dir}>
@@ -111,31 +111,47 @@ const description = `${book.name} ${chapter} (${t.abbr}): ${intro.length > 150 ?
 </Base>
 
 <script>
+  import { navigate } from 'astro:transitions/client';
   import { recordHistory, saveLastRead } from '../../../lib/prefs.ts';
 
-  // Remember where the reader is, for "Continue reading" on the home page
-  const [, , slug, chapter] = window.location.pathname.split('/');
-  const verses = [...document.querySelectorAll<HTMLElement>('.verses .verse[data-v]')];
-  const remember = () => {
-    const onScreen = verses.find((el) => el.getBoundingClientRect().bottom > 90);
-    saveLastRead({ slug, chapter: parseInt(chapter, 10), verse: Number(onScreen?.dataset.v ?? 1) });
-  };
-  let pending = 0;
-  remember();
-  recordHistory(window.location.pathname.replace(/\.html$/, ''));
-  window.addEventListener('scroll', () => {
-    clearTimeout(pending);
-    pending = window.setTimeout(remember, 500);
-  }, { passive: true });
+  // Pages change without a full reload, so set up each chapter on every page load
+  let stopTracking: (() => void) | undefined;
 
-  // ← / → move between chapters
+  document.addEventListener('astro:page-load', () => {
+    stopTracking?.();
+    stopTracking = undefined;
+    if (!document.querySelector('article.chapter[data-title]')) return;
+
+    // Remember where the reader is, for "Continue reading" and the offline page
+    const path = window.location.pathname.replace(/\.html$/, '');
+    const [, , slug, chapter] = path.split('/');
+    const verses = [...document.querySelectorAll<HTMLElement>('.verses .verse[data-v]')];
+    const remember = () => {
+      const onScreen = verses.find((el) => el.getBoundingClientRect().bottom > 90);
+      saveLastRead({ slug, chapter: parseInt(chapter, 10), verse: Number(onScreen?.dataset.v ?? 1) });
+    };
+    let pending = 0;
+    const onScroll = () => {
+      clearTimeout(pending);
+      pending = window.setTimeout(remember, 500);
+    };
+    remember();
+    recordHistory(path);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    stopTracking = () => {
+      clearTimeout(pending);
+      window.removeEventListener('scroll', onScroll);
+    };
+  });
+
+  // ← / → move between chapters (added once; works on whichever chapter is showing)
   document.addEventListener('keydown', (e) => {
     if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
     if ((e.target as HTMLElement).closest('input, textarea, select, [contenteditable="true"]')) return;
     if (document.querySelector('dialog[open]')) return;
     const rel = e.key === 'ArrowRight' ? 'next' : e.key === 'ArrowLeft' ? 'prev' : null;
-    const link = rel && document.querySelector<HTMLAnchorElement>(`a[data-nav="${rel}"]`);
-    if (link) window.location.href = link.href;
+    const link = rel && document.querySelector<HTMLAnchorElement>(`.chapter a[data-nav="${rel}"]`);
+    if (link) void navigate(link.href);
   });
 </script>
 
@@ -245,7 +261,7 @@ const description = `${book.name} ${chapter} (${t.abbr}): ${intro.length > 150 ?
     margin-top: 40px;
   }
 .chapter {
-    padding-bottom: var(--player-space, 0px);
+    padding-bottom: calc(var(--listen-space, 0px) + var(--scroll-space, 0px));
   }
 /* Focus mode: just the text */
 :root[data-focus]:has(.chapter) .site-header,
@@ -258,7 +274,7 @@ const description = `${book.name} ${chapter} (${t.abbr}): ${intro.length > 150 ?
     max-width: 660px;
     padding-top: 56px;
     /* The footer is hidden, so leave room below the chapter buttons */
-    padding-bottom: calc(56px + var(--player-space, 0px) + env(safe-area-inset-bottom));
+    padding-bottom: calc(56px + var(--listen-space, 0px) + var(--scroll-space, 0px) + env(safe-area-inset-bottom));
   }
 :root[data-focus] .chapter .verses {
     line-height: 1.85;

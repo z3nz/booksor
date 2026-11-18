@@ -70,7 +70,7 @@
       el.classList.toggle('selected', set.has(Number(el.dataset.v)));
       el.classList.remove('target');
     }
-    history.replaceState(null, '', window.location.pathname + hashFor(selected));
+    history.replaceState(history.state, '', window.location.pathname + hashFor(selected));
   }
 
   /**
@@ -81,7 +81,7 @@
     const at = window.location.hash.match(/^#at(\d+)$/);
     if (at) {
       const el = verseEl(Number(at[1]));
-      history.replaceState(null, '', window.location.pathname);
+      history.replaceState(history.state, '', window.location.pathname);
       if (el && Number(at[1]) > 1) el.scrollIntoView({ block: 'start' });
       return;
     }
@@ -322,7 +322,7 @@
   .bar {
     position: fixed;
     left: 50%;
-    bottom: calc(16px + var(--player-space, 0px) + env(safe-area-inset-bottom));
+    bottom: calc(16px + var(--listen-space, 0px) + var(--scroll-space, 0px) + env(safe-area-inset-bottom));
     z-index: 30;
     transform: translateX(-50%);
     width: max-content;

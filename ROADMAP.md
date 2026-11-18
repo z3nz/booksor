@@ -36,6 +36,7 @@ A free, fast, beautiful Bible site at **booksor.com**.
 - [ ] **M** Switch chapter pages to on-demand rendering with edge caching once we near the 20k-file limit (Astro Cloudflare adapter + D1 or R2)
 - [x] **M** "I'm struggling with…" situation search: 39 curated situations (`data/situations.json`) with topic pages, a `/help` hub, search cards, and crisis resources for sensitive topics
 - [x] **M** Reading mode: read aloud using the browser's built-in voices (speed, voice, verse highlighting, continues into the next chapter), auto-scroll, focus mode
+- [x] **M** Pages change without a full reload, so the read-aloud player keeps going across pages and on into the next chapter on phones
 - [x] **M** Bookmarks, highlights (5 colors), notes, saved on the device (no account needed), with a Saved page and backup/restore
 - [x] **S** "Continue where you left off" on the home page
 - [x] **S** Offline support: install like an app, pages you read are saved automatically, download a whole translation (with search) from the settings panel
@@ -49,7 +50,7 @@ A free, fast, beautiful Bible site at **booksor.com**.
 - [ ] **S–M** Cross-references: verses related to the one you're reading (OpenBible.info, ~340k links)
 - [ ] **S** Side-by-side translations
 - [ ] **M** Reading plans (Bible in a year, streaks)
-- [ ] **M** Real audio Bibles with narration (Bible Brain API, free key)
+- [ ] **M** Real audio for read-aloud, so it keeps playing with the phone locked (with lock-screen controls). Options: Bob Souer's BSB narration (openbible.com; need to confirm the recordings' license), Bible Brain API, or generating our own with an open-source voice (Piper) and hosting on R2
 - [ ] **S** Verse-of-the-day email/notification and embeddable widget
 
 ## Phase 4 — Down the road

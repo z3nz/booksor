@@ -90,11 +90,10 @@ const href = (slug: string, chapter = 1) => chapterUrl(DEFAULT_TRANSLATION, book
   import { followPreferredTranslation } from '../lib/links.ts';
   import { loadLastRead } from '../lib/prefs.ts';
 
-  const last = loadLastRead();
-  const lastBook = last && bookBySlug.get(last.slug);
-
   followPreferredTranslation((tr) => {
     const resume = document.querySelector<HTMLAnchorElement>('a[data-continue]');
+    const last = loadLastRead();
+    const lastBook = last && bookBySlug.get(last.slug);
     if (resume && last && lastBook) {
       resume.href = `${chapterUrl(tr, lastBook, last.chapter)}#at${last.verse}`;
       resume.textContent = `Continue: ${lastBook.name} ${last.chapter}${last.verse > 1 ? `:${last.verse}` : ''}`;

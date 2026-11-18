@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { navigate } from 'astro:transitions/client';
   import { TRANSLATIONS, DEFAULT_TRANSLATION, translationById } from '../lib/translations.ts';
   import { preferredTranslation, setPreferredTranslation } from '../lib/prefs.ts';
 
@@ -20,8 +21,8 @@
 
   function change() {
     setPreferredTranslation(value);
-    if (location) window.location.href = `/${value}/${location}${window.location.hash}`;
-    else if (current) window.location.href = `/${value}`;
+    if (location) void navigate(`/${value}/${location}${window.location.hash}`);
+    else if (current) void navigate(`/${value}`);
   }
 </script>
 

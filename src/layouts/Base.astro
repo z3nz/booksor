@@ -5,6 +5,8 @@ import '../styles/global.css';
 import SearchBox from '../components/SearchBox.svelte';
 import TranslationSwitcher from '../components/TranslationSwitcher.svelte';
 import ReaderSettings from '../components/ReaderSettings.svelte';
+import ListenPlayer from '../components/ListenPlayer.svelte';
+import { ClientRouter } from 'astro:transitions';
 import { iconSvg } from '../lib/icons.ts';
 import { TRANSLATIONS } from '../lib/translations.ts';
 
@@ -47,16 +49,31 @@ const canonical = new URL(Astro.url.pathname.replace(/\.html$/, '').replace(/\/$
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
     <meta name="twitter:card" content="summary" />
-    <!-- Apply saved theme and text size before the page paints (no flash). -->
+    <!--
+      Apply saved theme, text size and focus mode before the page paints (no flash). Pages change
+      without a full reload, which resets these on <html>, so they're applied again after each swap.
+    -->
     <script is:inline>
-      try {
-        const s = JSON.parse(localStorage.getItem('booksor:settings') || '{}');
-        const r = document.documentElement;
-        if (s.theme && s.theme !== 'system') r.dataset.theme = s.theme;
-        if (s.size) r.style.setProperty('--reader-size', s.size + 'px');
-        if (s.focus) r.setAttribute('data-focus', '');
-      } catch {}
+      (() => {
+        const apply = (doc) => {
+          try {
+            const s = JSON.parse(localStorage.getItem('booksor:settings') || '{}');
+            const r = doc.documentElement;
+            if (s.theme && s.theme !== 'system') r.dataset.theme = s.theme;
+            if (s.size) r.style.setProperty('--reader-size', s.size + 'px');
+            r.toggleAttribute('data-focus', !!s.focus);
+            r.toggleAttribute('data-offline', !navigator.onLine);
+          } catch {}
+        };
+        apply(document);
+        if (!window.booksorSwapHook) {
+          window.booksorSwapHook = true;
+          // Set them on the incoming page before it's shown
+          document.addEventListener('astro:before-swap', (e) => apply(e.newDocument));
+        }
+      })();
     </script>
+    <ClientRouter />
   </head>
   <body>
     <a class="skip" href="#main">Skip to content</a>
@@ -80,7 +97,7 @@ const canonical = new URL(Astro.url.pathname.replace(/\.html$/, '').replace(/\/$
           <span class="offline-pill" role="status" title="No connection. Saved pages still work.">Offline</span>
           <TranslationSwitcher client:load current={translation} location={location} />
           <a class="btn btn-icon" href="/saved" aria-label="Saved highlights, notes and bookmarks" title="Saved" set:html={iconSvg('bookmark', 18)} />
-          <ReaderSettings client:load />
+          <ReaderSettings client:load transition:persist="reader-settings" />
         </div>
       </div>
     </header>
@@ -100,6 +117,8 @@ const canonical = new URL(Astro.url.pathname.replace(/\.html$/, '').replace(/\/$
         </nav>
       </div>
     </footer>
+    <!-- Keeps reading aloud as you move between pages -->
+    <ListenPlayer client:load transition:persist="listen-player" />
   </body>
 </html>
 
@@ -116,6 +135,7 @@ const canonical = new URL(Astro.url.pathname.replace(/\.html$/, '').replace(/\/$
     window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
   }
 
+  // (also set before each page swap by the inline script in <head>)
   const showConnection = () => document.documentElement.toggleAttribute('data-offline', !navigator.onLine);
   showConnection();
   window.addEventListener('online', showConnection);

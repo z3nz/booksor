@@ -2,7 +2,7 @@
 // same caches the service worker (src/service-worker.js) reads from when there's no connection.
 import { BOOKS, chapterUrl } from './books.ts';
 import { helpUrl, SITUATIONS } from './situations.ts';
-import { translationById } from './translations.ts';
+import { languageOf, translationById } from './translations.ts';
 import { xrefUrl } from './xref.ts';
 
 export interface OfflineManifest {
@@ -47,7 +47,8 @@ export function pageUrls(tr: string): string[] {
   return [
     `/${tr}`,
     ...BOOKS.flatMap((b) => Array.from({ length: b.chapters }, (_, i) => chapterUrl(tr, b, i + 1))),
-    ...SITUATIONS.map((s) => helpUrl(tr, s.slug)),
+    // Topic pages are English only so far
+    ...(languageOf(tr) === 'en' ? SITUATIONS.map((s) => helpUrl(tr, s.slug)) : []),
   ];
 }
 

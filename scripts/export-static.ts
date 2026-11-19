@@ -38,7 +38,7 @@ for (const t of TRANSLATIONS) {
       problems++;
     }
     days.push({
-      ref: formatReference(ref),
+      ref: formatReference(ref, t.language),
       slug: ref.book.slug,
       chapter: ref.chapter,
       verse: ref.verse,
@@ -64,7 +64,7 @@ for (const [lang, trs] of byLanguage) {
   }
   const rows: SearchRow[] = [...texts.values()]
     .sort((x, y) => x.b - y.b || x.c - y.c || x.v - y.v)
-    .map((e) => [e.b, e.c, e.v, combineWords(e.texts)]);
+    .map((e) => [e.b, e.c, e.v, combineWords(e.texts, lang)]);
   const json = JSON.stringify(rows);
   writeFileSync(join(PUBLIC, 'search', `words-${lang}.json`), json);
   console.log(`✓ search/words-${lang}.json — ${rows.length.toLocaleString()} verses from ${trs.map((t) => t.abbr).join(', ')}, ${(json.length / 1e6).toFixed(1)} MB`);

@@ -25,6 +25,7 @@ Run `pnpm data` once before `dev` or `build`. The downloads, the database and th
 ## How it fits together
 
 - `data/translations.json`: which translations to import, plus license and attribution for each. Add a new eBible.org translation here and run `pnpm data`.
+- Languages: `src/i18n/` has the menu text (`messages.ts`, type-checked so every language has every message) and book names with the abbreviations people type (`books.ts`). Bible pages use their translation's language; home pages are `/` and `/es`. Search handles each language's words in `src/lib/terms.ts` (Spanish ignores accents). Topic pages (`/help`) are English only so far.
 - `scripts/`: the data pipeline (download, then build SQLite, then export JSON).
 - `src/lib/`: shared logic: books, the reference parser, preferences, sharing, and the search worker.
 - `src/pages/[tr]/[book]/[chapter].astro`: one static page per chapter, read from SQLite while the site builds.

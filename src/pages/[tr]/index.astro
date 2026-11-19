@@ -4,6 +4,7 @@ import Base from '../../layouts/Base.astro';
 import { BOOKS, chapterUrl } from '../../lib/books.ts';
 import { TRANSLATIONS } from '../../lib/translations.ts';
 import type { Translation } from '../../lib/types.ts';
+import { bookName, messages, uiLang } from '../../i18n/index.ts';
 
 export const getStaticPaths = (() => TRANSLATIONS.map((t) => ({ params: { tr: t.id }, props: { t } }))) satisfies GetStaticPaths;
 
@@ -11,15 +12,17 @@ interface Props {
   t: Translation;
 }
 const { t } = Astro.props;
+const lang = uiLang(t.language);
+const m = messages(lang);
 const testaments = [
-  { id: 'OT', label: 'Old Testament' },
-  { id: 'NT', label: 'New Testament' },
+  { id: 'OT', label: m.books.ot },
+  { id: 'NT', label: m.books.nt },
 ] as const;
 ---
 
 <Base
-  title={`${t.name} (${t.abbr}) – Read online – Booksor`}
-  description={`Read the ${t.name} (${t.abbr}) online, free. All 66 books, searchable, with verse sharing.`}
+  title={m.books.listTitle(t.name, t.abbr)}
+  description={m.books.listDescription(t.name, t.abbr)}
   translation={t.id}
 >
   <div class="container page">
@@ -33,7 +36,7 @@ const testaments = [
             {BOOKS.filter((b) => b.testament === testament.id).map((b) => (
               <details>
                 <summary>
-                  <span>{b.name}</span>
+                  <span>{bookName(b, lang)}</span>
                   <span class="count">{b.chapters}</span>
                 </summary>
                 <div class="chapters">

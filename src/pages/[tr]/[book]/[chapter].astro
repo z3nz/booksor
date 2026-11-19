@@ -8,7 +8,8 @@ import VerseActions from '../../../components/VerseActions.svelte';
 import { BOOKS, adjacentChapter, chapterUrl } from '../../../lib/books.ts';
 import { getChapter, getXrefCounts } from '../../../lib/db.ts';
 import { plainText, verseHtml } from '../../../lib/text.ts';
-import { TRANSLATIONS } from '../../../lib/translations.ts';
+import { defaultTranslationFor, TRANSLATION_LANGUAGES, TRANSLATIONS } from '../../../lib/translations.ts';
+import { bookName, messages, uiLang } from '../../../i18n/index.ts';
 import type { Translation, Verse } from '../../../lib/types.ts';
 
 export const getStaticPaths = (() =>
@@ -43,20 +44,29 @@ for (const v of verses) {
 
 const prev = adjacentChapter(book, chapter, -1);
 const next = adjacentChapter(book, chapter, 1);
+const lang = uiLang(t.language);
+const m = messages(lang);
+const name = bookName(book, lang);
 const intro = plainText(verses.slice(0, 3).map((v) => v.t).join(' '), t.suppliedWords);
-const description = `${book.name} ${chapter} (${t.abbr}): ${intro.length > 150 ? intro.slice(0, 147).trimEnd() + '…' : intro}`;
+const description = `${name} ${chapter} (${t.abbr}): ${intro.length > 150 ? intro.slice(0, 147).trimEnd() + '…' : intro}`;
+// The main translation in each language points search engines at the others
+const alternates: [string, string][] =
+  defaultTranslationFor(t.language) === t.id
+    ? TRANSLATION_LANGUAGES.map((l) => [l, chapterUrl(defaultTranslationFor(l), book, chapter)])
+    : [];
 ---
 
 <Base
-  title={`${book.name} ${chapter} (${t.abbr}) – Booksor`}
+  title={m.chapter.title(name, chapter, t.abbr)}
   description={description}
   translation={t.id}
   location={`${book.slug}/${chapter}`}
+  alternates={alternates}
 >
   <article
     class="chapter container"
-    data-title={`${book.name} ${chapter}`}
-    data-intro={`${book.name}, chapter ${chapter}`}
+    data-title={`${name} ${chapter}`}
+    data-intro={m.chapter.intro(name, chapter)}
     data-lang={t.language}
     data-tr={t.id}
     data-slug={book.slug}
@@ -65,8 +75,8 @@ const description = `${book.name} ${chapter} (${t.abbr}): ${intro.length > 150 ?
   >
     <header class="chapter-head">
       <div class="eyebrow">{t.name}</div>
-      <ChapterPicker client:idle tr={t.id} slug={book.slug} chapter={chapter} />
-      <ReadingTools client:load nextUrl={next ? chapterUrl(t.id, next.book, next.chapter) : null} />
+      <ChapterPicker client:idle tr={t.id} slug={book.slug} chapter={chapter} lang={lang} />
+      <ReadingTools client:load nextUrl={next ? chapterUrl(t.id, next.book, next.chapter) : null} lang={lang} />
     </header>
 
     <div class:list={['verses', 'reading', flow ? 'flow' : 'lines']} lang={t.language} dir={t.dir}>
@@ -84,7 +94,7 @@ const description = `${book.name} ${chapter} (${t.abbr}): ${intro.length > 150 ?
                   <sup class="vn">{v.v}</sup>
                   <span class="vt" set:html={verseHtml(v.t, t.suppliedWords)} />
                   {xrefCounts.get(v.v) && (
-                    <button class="xn" data-xv={v.v} aria-label={`${xrefCounts.get(v.v)} related passages for verse ${v.v}`}>
+                    <button class="xn" data-xv={v.v} aria-label={m.chapter.relatedCount(xrefCounts.get(v.v)!, v.v)}>
                       {xrefCounts.get(v.v)}
                     </button>
                   )}
@@ -96,11 +106,11 @@ const description = `${book.name} ${chapter} (${t.abbr}): ${intro.length > 150 ?
       }
     </div>
 
-    <nav class="pager" aria-label="Chapters">
+    <nav class="pager" aria-label={m.chapter.chapters}>
       {
         prev ? (
           <a class="btn" href={chapterUrl(t.id, prev.book, prev.chapter)} data-nav="prev" rel="prev">
-            ← {prev.book.name} {prev.chapter}
+            ← {bookName(prev.book, lang)} {prev.chapter}
           </a>
         ) : (
           <span />
@@ -109,16 +119,16 @@ const description = `${book.name} ${chapter} (${t.abbr}): ${intro.length > 150 ?
       {
         next && (
           <a class="btn" href={chapterUrl(t.id, next.book, next.chapter)} data-nav="next" rel="next">
-            {next.book.name} {next.chapter} →
+            {bookName(next.book, lang)} {next.chapter} →
           </a>
         )
       }
     </nav>
 
-    <p class="attribution">{t.attribution} <a href="/about">Licenses</a></p>
+    <p class="attribution">{t.attribution} <a href="/about">{m.chapter.licenses}</a></p>
   </article>
 
-  <VerseActions client:load tr={t.id} abbr={t.abbr} bookName={book.name} bookIdx={bookIdx} chapter={chapter} />
+  <VerseActions client:load tr={t.id} abbr={t.abbr} bookName={name} bookIdx={bookIdx} chapter={chapter} lang={lang} />
   <!-- Stays open as you follow references from chapter to chapter -->
   <CrossRefs client:load transition:persist="cross-refs" />
 </Base>

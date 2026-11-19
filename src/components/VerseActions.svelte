@@ -21,6 +21,7 @@
   } from '../lib/library.ts';
   import { compressVerses, copyText, shareOrCopy, shareOrDownloadImage, verseImage } from '../lib/share.ts';
   import { VERSE_SELECTION, XREF_OPEN, type VerseSelection } from '../lib/xref.ts';
+  import { messages, type UiLang } from '../i18n/index.ts';
 
   let {
     tr,
@@ -28,7 +29,9 @@
     bookName,
     bookIdx,
     chapter,
-  }: { tr: string; abbr: string; bookName: string; bookIdx: number; chapter: number } = $props();
+    lang = 'en',
+  }: { tr: string; abbr: string; bookName: string; bookIdx: number; chapter: number; lang?: UiLang } = $props();
+  const m = $derived(messages(lang));
 
   let selected = $state<number[]>([]);
   let lib = $state<Library>(emptyLibrary());
@@ -128,21 +131,21 @@
 
   function save(next: Library, message: string) {
     lib = next;
-    flash(saveLibrary(next) ? message : 'Couldn’t save on this device');
+    flash(saveLibrary(next) ? message : m.verse.cantSave);
   }
 
   // --- Highlights, bookmarks, notes ---
 
   function highlight(color: Color | null) {
     const verses = selected.map((v) => ({ b: bookIdx, c: chapter, v, t: verseText(verseEl(v)) }));
-    save(setHighlight(lib, verses, color, tr), color ? 'Highlighted' : 'Highlight removed');
+    save(setHighlight(lib, verses, color, tr), color ? m.verse.highlighted : m.verse.highlightRemoved);
     setSelected([]);
   }
 
   function toggleBookmark() {
     if (!selection) return;
     const next = !bookmarked;
-    save(updatePassage(lib, selection, { bm: next }, textOf(selection.from, selection.to), tr), next ? 'Bookmarked' : 'Bookmark removed');
+    save(updatePassage(lib, selection, { bm: next }, textOf(selection.from, selection.to), tr), next ? m.verse.bookmarkAdded : m.verse.bookmarkRemoved);
     setSelected([]);
   }
 
@@ -159,9 +162,9 @@
   function saveNote(text: string) {
     if (!noteFor) return;
     const had = !!lib.passages[passageKey(noteFor)]?.note;
-    const message = text.trim() ? 'Note saved' : had ? 'Note deleted' : '';
+    const message = text.trim() ? m.verse.noteSaved : had ? m.verse.noteDeleted : '';
     lib = updatePassage(lib, noteFor, { note: text }, textOf(noteFor.from, noteFor.to), tr);
-    if (!saveLibrary(lib)) flash('Couldn’t save on this device');
+    if (!saveLibrary(lib)) flash(m.verse.cantSave);
     else if (message) flash(message);
     noteDialog.close();
     setSelected([]);
@@ -181,7 +184,7 @@
       if (p.bm && start) {
         const icon = document.createElement('span');
         icon.className = 'mark-icon bm-icon';
-        icon.title = 'Bookmarked';
+        icon.title = m.verse.bookmarkedTitle;
         icon.innerHTML = iconSvg('bookmark', 14, true);
         start.prepend(icon);
       }
@@ -190,7 +193,7 @@
         const btn = document.createElement('button');
         btn.className = 'mark-icon note-btn';
         btn.dataset.passage = p.key;
-        btn.setAttribute('aria-label', `Your note on ${refLabel(p)}`);
+        btn.setAttribute('aria-label', m.verse.yourNote(refLabel(p)));
         btn.title = p.note.length > 120 ? p.note.slice(0, 117) + '…' : p.note;
         btn.innerHTML = iconSvg('note', 15);
         end.append(btn);
@@ -204,12 +207,12 @@
 
   async function copy() {
     const ok = await copyText(`“${selectedText()}” — ${reference} (${abbr})\n${shareUrl()}`);
-    flash(ok ? 'Copied' : 'Couldn’t copy');
+    flash(ok ? m.verse.copied : m.verse.cantCopy);
   }
 
   async function link() {
     const ok = await copyText(shareUrl());
-    flash(ok ? 'Link copied' : 'Couldn’t copy');
+    flash(ok ? m.verse.linkCopied : m.verse.cantCopy);
   }
 
   async function share() {
@@ -218,8 +221,8 @@
       text: `“${selectedText()}” — ${reference} (${abbr})`,
       url: shareUrl(),
     });
-    if (result === 'copied') flash('Copied');
-    else if (result === 'failed') flash('Couldn’t share');
+    if (result === 'copied') flash(m.verse.copied);
+    else if (result === 'failed') flash(m.verse.cantShare);
   }
 
   async function image() {
@@ -268,44 +271,44 @@
 </script>
 
 {#if selected.length}
-  <div class="bar card" role="toolbar" aria-label="Selected verses">
+  <div class="bar card" role="toolbar" aria-label={m.verse.selected}>
     <div class="row">
       <span class="ref">{reference}</span>
-      <div class="colors" role="group" aria-label="Highlight color">
+      <div class="colors" role="group" aria-label={m.verse.colors}>
         {#each COLORS as color (color)}
           <button
             class="swatch"
             style="--swatch: var(--hl-{color})"
-            aria-label="Highlight {color}"
-            title="Highlight {color}"
+            aria-label={m.verse.highlightIn(m.verse.color[color])}
+            title={m.verse.highlightIn(m.verse.color[color])}
             aria-pressed={selectedColors.size === 1 && selectedColors.has(color)}
             onclick={() => highlight(color)}
           ></button>
         {/each}
         {#if [...selectedColors].some(Boolean)}
-          <button class="swatch clear" aria-label="Remove highlight" title="Remove highlight" onclick={() => highlight(null)}>
+          <button class="swatch clear" aria-label={m.verse.removeHighlight} title={m.verse.removeHighlight} onclick={() => highlight(null)}>
             <Icon name="close" size={14} />
           </button>
         {/if}
       </div>
-      <button class="btn btn-icon close" aria-label="Clear selection" onclick={() => setSelected([])}>
+      <button class="btn btn-icon close" aria-label={m.verse.clear} onclick={() => setSelected([])}>
         <Icon name="close" size={16} />
       </button>
     </div>
     <div class="actions">
       <button class="btn" onclick={() => selection && openNote(selection)}>
-        <Icon name="note" size={16} />{hasNote ? 'Edit note' : 'Note'}
+        <Icon name="note" size={16} />{hasNote ? m.verse.editNote : m.verse.note}
       </button>
       <button class="btn" aria-pressed={bookmarked} onclick={toggleBookmark}>
-        <Icon name="bookmark" size={16} filled={bookmarked} />{bookmarked ? 'Saved' : 'Bookmark'}
+        <Icon name="bookmark" size={16} filled={bookmarked} />{bookmarked ? m.verse.bookmarked : m.verse.bookmark}
       </button>
       {#if hasRelated}
-        <button class="btn" onclick={openRelated}><Icon name="related" size={16} />Related</button>
+        <button class="btn" onclick={openRelated}><Icon name="related" size={16} />{m.verse.related}</button>
       {/if}
-      <button class="btn" onclick={copy}><Icon name="copy" size={16} />Copy</button>
-      <button class="btn" onclick={link}><Icon name="link" size={16} />Link</button>
-      <button class="btn" onclick={share}><Icon name="share" size={16} />Share</button>
-      <button class="btn" onclick={image} disabled={busy}><Icon name="image" size={16} />{busy ? '…' : 'Image'}</button>
+      <button class="btn" onclick={copy}><Icon name="copy" size={16} />{m.verse.copy}</button>
+      <button class="btn" onclick={link}><Icon name="link" size={16} />{m.verse.link}</button>
+      <button class="btn" onclick={share}><Icon name="share" size={16} />{m.verse.share}</button>
+      <button class="btn" onclick={image} disabled={busy}><Icon name="image" size={16} />{busy ? '…' : m.verse.image}</button>
     </div>
   </div>
 {/if}
@@ -316,16 +319,16 @@
   {#if noteFor}
     <form method="dialog" onsubmit={(e) => (e.preventDefault(), saveNote(noteText))}>
       <h2 id="note-title">{refLabel(noteFor)}</h2>
-      <blockquote class="reading">{textOf(noteFor.from, noteFor.to)}</blockquote>
-      <textarea bind:value={noteText} rows="5" placeholder="Write a note…" aria-label="Note"></textarea>
-      <p class="hint">Saved on this device only. Back it up from your <a href="/saved">Saved</a> page.</p>
+      <blockquote class="reading" {lang}>{textOf(noteFor.from, noteFor.to)}</blockquote>
+      <textarea bind:value={noteText} rows="5" placeholder={m.verse.writeNote} aria-label={m.verse.note}></textarea>
+      <p class="hint">{m.verse.noteHintBefore} <a href="/saved">{m.verse.noteHintLink}</a>{m.verse.noteHintAfter}</p>
       <div class="note-actions">
         {#if lib.passages[passageKey(noteFor)]?.note}
-          <button type="button" class="btn danger" onclick={() => saveNote('')}><Icon name="trash" size={16} />Delete</button>
+          <button type="button" class="btn danger" onclick={() => saveNote('')}><Icon name="trash" size={16} />{m.verse.delete}</button>
         {/if}
         <span class="spacer"></span>
-        <button type="button" class="btn" onclick={() => noteDialog.close()}>Cancel</button>
-        <button type="submit" class="btn btn-primary">Save</button>
+        <button type="button" class="btn" onclick={() => noteDialog.close()}>{m.verse.cancel}</button>
+        <button type="submit" class="btn btn-primary">{m.verse.save}</button>
       </div>
     </form>
   {/if}

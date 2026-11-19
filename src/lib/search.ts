@@ -4,16 +4,16 @@
 // so a quote in any wording finds the verse. Results are shown in the reader's translation.
 import MiniSearch, { type SearchResult } from 'minisearch';
 import { verseKey } from './books.ts';
-import { processTerm, words } from './terms.ts';
+import { processTermFor, words } from './terms.ts';
 import type { SearchRow } from './types.ts';
 
-export { combineWords, highlight, processTerm, stem } from './terms.ts';
+export { combineWords, highlight, processTerm, processTermFor, stem } from './terms.ts';
 
 export type SearchIndex = MiniSearch<{ id: number; t: string }>;
 
 /** `rows` are the combined-words rows: [book, chapter, verse, words]. */
-export function buildIndex(rows: SearchRow[]): SearchIndex {
-  const index: SearchIndex = new MiniSearch({ fields: ['t'], processTerm });
+export function buildIndex(rows: SearchRow[], lang: string = 'en'): SearchIndex {
+  const index: SearchIndex = new MiniSearch({ fields: ['t'], processTerm: processTermFor(lang) });
   index.addAll(rows.map((r, id) => ({ id, t: r[3] })));
   return index;
 }
@@ -39,7 +39,7 @@ export interface SearchOutcome {
   partial: boolean;
 }
 
-const normalize = (s: string) => words(s.toLowerCase()).join(' ');
+const normalize = (s: string) => words(s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()).join(' ');
 
 export function search(
   index: SearchIndex,
@@ -47,7 +47,9 @@ export function search(
   display: Map<string, string>,
   q: string,
   limit = 30,
+  lang = 'en',
 ): SearchOutcome {
+  const processTerm = processTermFor(lang);
   const options = {
     // Only the word being typed is treated as a prefix ("lov" -> love, loved, loveth)
     prefix: (_term: string, i: number, terms: string[]) => i === terms.length - 1,

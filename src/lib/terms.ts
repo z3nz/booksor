@@ -51,15 +51,37 @@ export function processTerm(term: string): string | null {
   return stem(t);
 }
 
+// Spanish: accents don't matter when searching ("corazon" finds "corazón", and "a" matches the
+// 1909 spelling "á"), the commonest little words are skipped, and plurals match singulars.
+const ES_STOP_WORDS = new Set('a al de del el en la las lo los y e o u que se un una unos unas con por para su sus'.split(' '));
+const foldAccents = (s: string) => s.normalize('NFD').replace(/\p{M}/gu, '');
+
+export function stemEs(word: string): string {
+  let w = word;
+  if (w.length > 5) w = w.replace(/es$/, '');
+  if (w.length > 4) w = w.replace(/s$/, '');
+  return w;
+}
+
+export function processTermEs(term: string): string | null {
+  const t = foldAccents(term.toLowerCase());
+  if (ES_STOP_WORDS.has(t)) return null;
+  return stemEs(t);
+}
+
+/** The word → index term function for a language */
+export const processTermFor = (lang: string = 'en') => (lang === 'es' ? processTermEs : processTerm);
+
 const WORD = /[\p{L}\p{N}]+/gu;
 export const words = (text: string) => text.match(WORD) ?? [];
 
 /** One search entry per verse: the distinct terms from every translation, as plain words. */
-export function combineWords(texts: string[]): string {
+export function combineWords(texts: string[], lang: string = 'en'): string {
+  const term = processTermFor(lang);
   const byTerm = new Map<string, string>();
   for (const text of texts) {
     for (const w of words(text)) {
-      const t = processTerm(w);
+      const t = term(w);
       if (t && !byTerm.has(t)) byTerm.set(t, w.toLowerCase());
     }
   }
@@ -67,7 +89,8 @@ export function combineWords(texts: string[]): string {
 }
 
 /** Escaped HTML with every word whose index term matched wrapped in <mark>. */
-export function highlight(text: string, terms: string[]): string {
+export function highlight(text: string, terms: string[], lang: string = 'en'): string {
+  const processTerm = processTermFor(lang);
   const set = new Set(terms);
   return text.replace(/[\p{L}\p{N}]+|[^\p{L}\p{N}]+/gu, (chunk) => {
     const html = escapeHtml(chunk);

@@ -10,8 +10,11 @@ import { plainText, verseHtml } from '../../../lib/text.ts';
 import { TRANSLATIONS } from '../../../lib/translations.ts';
 import type { Translation } from '../../../lib/types.ts';
 
+// The topics are written in English so far, so they're only built for English translations
 export const getStaticPaths = (() =>
-  TRANSLATIONS.flatMap((t) => SITUATIONS.map((s) => ({ params: { tr: t.id, slug: s.slug }, props: { t, s } })))) satisfies GetStaticPaths;
+  TRANSLATIONS.filter((t) => t.language === 'en').flatMap((t) =>
+    SITUATIONS.map((s) => ({ params: { tr: t.id, slug: s.slug }, props: { t, s } })),
+  )) satisfies GetStaticPaths;
 
 interface Props {
   t: Translation;

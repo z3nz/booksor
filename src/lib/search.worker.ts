@@ -43,7 +43,7 @@ const displays = new Map<string, Promise<Map<string, string>>>();
 const loadIndex = (lang: string) =>
   cached(indexes, lang, async () => {
     const rows = await fetchRows(`/search/words-${lang}.json`);
-    return { rows, index: buildIndex(rows) };
+    return { rows, index: buildIndex(rows, lang) };
   });
 
 const loadDisplay = (tr: string) =>
@@ -52,17 +52,17 @@ const loadDisplay = (tr: string) =>
 async function load(tr: string) {
   const lang = translationById.get(tr)?.language ?? 'en';
   const [{ rows, index }, display] = await Promise.all([loadIndex(lang), loadDisplay(tr)]);
-  return { rows, index, display };
+  return { rows, index, display, lang };
 }
 
 self.onmessage = async (e: MessageEvent<SearchRequest>) => {
   const msg = e.data;
   try {
-    const { rows, index, display } = await load(msg.tr);
+    const { rows, index, display, lang } = await load(msg.tr);
     if (msg.type === 'load') {
       post({ type: 'ready', tr: msg.tr });
     } else if (msg.type === 'search') {
-      post({ type: 'results', id: msg.id, ...search(index, rows, display, msg.q) });
+      post({ type: 'results', id: msg.id, ...search(index, rows, display, msg.q, 30, lang) });
     } else if (msg.type === 'lookup') {
       const parts: string[] = [];
       for (let v = msg.verse; v <= (msg.endVerse ?? msg.verse) && parts.length < 6; v++) {

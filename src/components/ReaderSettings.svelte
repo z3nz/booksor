@@ -1,21 +1,23 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import OfflineSettings from './OfflineSettings.svelte';
+  import { followPageLang, messages, type UiLang } from '../i18n/index.ts';
   import { DEFAULT_SETTINGS, loadSettings, MAX_SIZE, MIN_SIZE, updateSettings, type Settings, type Theme } from '../lib/prefs.ts';
+
+  // Stays on screen across pages (transition:persist), so it follows each page's language
+  let { lang: initialLang = 'en' }: { lang?: UiLang } = $props();
+  let lang = $state(initialLang);
+  const m = $derived(messages(lang));
 
   let open = $state(false);
   let settings = $state<Settings>({ ...DEFAULT_SETTINGS });
   let root: HTMLElement;
 
-  const THEMES: { id: Theme; label: string }[] = [
-    { id: 'system', label: 'Auto' },
-    { id: 'light', label: 'Light' },
-    { id: 'sepia', label: 'Sepia' },
-    { id: 'dark', label: 'Dark' },
-  ];
+  const THEMES: Theme[] = ['system', 'light', 'sepia', 'dark'];
 
   onMount(() => {
     settings = loadSettings();
+    return followPageLang((l) => (lang = l));
   });
 
   function update(patch: Partial<Settings>) {
@@ -38,30 +40,30 @@
     class="btn btn-icon toggle"
     aria-expanded={open}
     aria-controls="reader-settings"
-    aria-label="Reading settings"
-    title="Reading settings"
+    aria-label={m.settings.label}
+    title={m.settings.label}
     onclick={() => (open = !open)}
   >
     <span class="aa">A<span>a</span></span>
   </button>
 
   <!-- Stays mounted while closed so an offline download keeps its progress -->
-  <div class="panel card" id="reader-settings" role="dialog" aria-label="Reading settings" hidden={!open}>
-      <div class="eyebrow">Theme</div>
+  <div class="panel card" id="reader-settings" role="dialog" aria-label={m.settings.label} hidden={!open}>
+      <div class="eyebrow">{m.settings.theme}</div>
       <div class="themes">
-        {#each THEMES as t (t.id)}
-          <button class="theme" aria-pressed={settings.theme === t.id} onclick={() => update({ theme: t.id })}>
-            <span class="swatch {t.id}"></span>
-            {t.label}
+        {#each THEMES as t (t)}
+          <button class="theme" aria-pressed={settings.theme === t} onclick={() => update({ theme: t })}>
+            <span class="swatch {t}"></span>
+            {m.settings.themes[t]}
           </button>
         {/each}
       </div>
 
-      <div class="eyebrow">Text size</div>
+      <div class="eyebrow">{m.settings.size}</div>
       <div class="size">
         <button
           class="btn btn-icon"
-          aria-label="Smaller text"
+          aria-label={m.settings.smaller}
           disabled={settings.size <= MIN_SIZE}
           onclick={() => update({ size: Math.max(MIN_SIZE, settings.size - 1) })}>A−</button
         >
@@ -70,18 +72,18 @@
           min={MIN_SIZE}
           max={MAX_SIZE}
           value={settings.size}
-          aria-label="Text size"
+          aria-label={m.settings.size}
           oninput={(e) => update({ size: Number(e.currentTarget.value) })}
         />
         <button
           class="btn btn-icon"
-          aria-label="Larger text"
+          aria-label={m.settings.larger}
           disabled={settings.size >= MAX_SIZE}
           onclick={() => update({ size: Math.min(MAX_SIZE, settings.size + 1) })}>A+</button
         >
       </div>
-      <p class="preview reading">In the beginning was the Word, and the Word was with God.</p>
-      <OfflineSettings active={open} />
+      <p class="preview reading" {lang}>{m.settings.preview}</p>
+      <OfflineSettings active={open} {lang} />
   </div>
 </div>
 

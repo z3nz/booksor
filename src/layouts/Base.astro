@@ -7,8 +7,9 @@ import TranslationSwitcher from '../components/TranslationSwitcher.svelte';
 import ReaderSettings from '../components/ReaderSettings.svelte';
 import ListenPlayer from '../components/ListenPlayer.svelte';
 import { ClientRouter } from 'astro:transitions';
+import { homeUrl, LANGUAGE_NAMES, messages, UI_LANGS, uiLang, type UiLang } from '../i18n/index.ts';
 import { iconSvg } from '../lib/icons.ts';
-import { TRANSLATIONS } from '../lib/translations.ts';
+import { languageOf, TRANSLATIONS } from '../lib/translations.ts';
 
 interface Props {
   title: string;
@@ -20,20 +21,27 @@ interface Props {
   showSearch?: boolean;
   /** Keep this page out of search engines (e.g. the reader's own Saved page) */
   noindex?: boolean;
+  /** Menu language; defaults to the translation's language, else English */
+  lang?: UiLang;
+  /** The same page in other languages, for search engines: [language, path] */
+  alternates?: [string, string][];
 }
 
-const { title, description, translation, location, showSearch = true, noindex = false } = Astro.props;
+const { title, description, translation, location, showSearch = true, noindex = false, alternates = [] } = Astro.props;
+const lang = Astro.props.lang ?? uiLang(languageOf(translation));
+const m = messages(lang);
 const canonical = new URL(Astro.url.pathname.replace(/\.html$/, '').replace(/\/$/, '') || '/', Astro.site);
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang={lang}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
+    {alternates.map(([hreflang, path]) => <link rel="alternate" hreflang={hreflang} href={new URL(path, Astro.site)} />)}
     {noindex && <meta name="robots" content="noindex" />}
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="manifest" href="/manifest.webmanifest" />
@@ -77,10 +85,10 @@ const canonical = new URL(Astro.url.pathname.replace(/\.html$/, '').replace(/\/$
     <ClientRouter />
   </head>
   <body>
-    <a class="skip" href="#main">Skip to content</a>
+    <a class="skip" href="#main">{m.site.skip}</a>
     <header class="site-header">
       <div class="container header-inner">
-        <a class="logo" href="/" aria-label="Booksor home">
+        <a class="logo" href={homeUrl(lang)} aria-label={m.site.home}>
           <svg viewBox="0 0 32 32" width="28" height="28" aria-hidden="true">
             <path d="M4 7.5C4 6.7 4.7 6 5.5 6H13a3 3 0 0 1 3 3v17a2.5 2.5 0 0 0-2.5-2.5H5.5C4.7 23.5 4 22.8 4 22z" fill="var(--accent)" />
             <path d="M28 7.5C28 6.7 27.3 6 26.5 6H19a3 3 0 0 0-3 3v17a2.5 2.5 0 0 1 2.5-2.5h8c.8 0 1.5-.7 1.5-1.5z" fill="var(--accent)" opacity=".65" />
@@ -90,15 +98,15 @@ const canonical = new URL(Astro.url.pathname.replace(/\.html$/, '').replace(/\/$
         {
           showSearch && (
             <div class="header-search">
-              <SearchBox client:idle variant="compact" translation={translation} />
+              <SearchBox client:idle variant="compact" translation={translation} lang={lang} />
             </div>
           )
         }
         <div class="header-actions">
-          <span class="offline-pill" role="status" title="No connection. Saved pages still work.">Offline</span>
-          <TranslationSwitcher client:load current={translation} location={location} />
-          <a class="btn btn-icon" href="/saved" aria-label="Saved highlights, notes and bookmarks" title="Saved" set:html={iconSvg('bookmark', 18)} />
-          <ReaderSettings client:load transition:persist="reader-settings" />
+          <span class="offline-pill" role="status" title={m.site.offlineTitle}>{m.site.offline}</span>
+          <TranslationSwitcher client:load current={translation} location={location} lang={lang} />
+          <a class="btn btn-icon" href="/saved" aria-label={m.site.savedLabel} title={m.site.saved} set:html={iconSvg('bookmark', 18)} />
+          <ReaderSettings client:load transition:persist="reader-settings" lang={lang} />
         </div>
       </div>
     </header>
@@ -109,12 +117,25 @@ const canonical = new URL(Astro.url.pathname.replace(/\.html$/, '').replace(/\/$
 
     <footer class="site-footer">
       <div class="container footer-inner">
-        <p>Booksor — read, search and share the Bible. Free, no ads, no tracking.</p>
-        <nav aria-label="Footer">
-          <a href="/help">Verses for hard times</a>
-          <a href="/saved">Saved</a>
-          <a href="/about">About &amp; licenses</a>
-          {TRANSLATIONS.map((t) => <a href={`/${t.id}`}>{t.abbr}</a>)}
+        <p>{m.site.tagline}</p>
+        <nav aria-label={m.site.footer}>
+          {lang === 'en' && <a href="/help">{m.site.hardTimes}</a>}
+          <a href="/saved">{m.site.saved}</a>
+          <a href="/about">{m.site.about}</a>
+          {TRANSLATIONS.map((t) => <a href={`/${t.id}`} lang={t.language}>{t.abbr}</a>)}
+        </nav>
+        <nav class="languages" aria-label={m.site.languages}>
+          {
+            UI_LANGS.map((l) =>
+              l === lang ? (
+                <span aria-current="true">{LANGUAGE_NAMES[l]}</span>
+              ) : (
+                <a href={homeUrl(l)} lang={l} hreflang={l}>
+                  {LANGUAGE_NAMES[l]}
+                </a>
+              ),
+            )
+          }
         </nav>
       </div>
     </footer>
@@ -243,5 +264,12 @@ const canonical = new URL(Astro.url.pathname.replace(/\.html$/, '').replace(/\/$
   }
   .footer-inner a {
     color: var(--muted);
+  }
+  .languages {
+    flex-basis: 100%;
+  }
+  .languages [aria-current] {
+    color: var(--text);
+    font-weight: 600;
   }
 </style>

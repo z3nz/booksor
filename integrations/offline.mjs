@@ -9,7 +9,7 @@ import { join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import translations from '../data/translations.json' with { type: 'json' };
 
-const SHELL = ['/', '/help', '/saved', '/about', '/offline'];
+const SHELL = ['/', '/es', '/help', '/saved', '/about', '/offline'];
 const EXTRA_ASSETS = ['/manifest.webmanifest', '/favicon.svg', '/icons/icon-192.png'];
 
 function walk(dir) {

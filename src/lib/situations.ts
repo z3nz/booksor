@@ -2,6 +2,7 @@
 // people type ("feeling anxious", "lost my job", "grief") to those topics.
 import data from '../../data/situations.json' with { type: 'json' };
 import { stem } from './terms.ts';
+import { DEFAULT_TRANSLATION, languageOf } from './translations.ts';
 
 export type Care = 'crisis' | 'safety' | 'support';
 export type SituationGroup = 'feelings' | 'hard-times' | 'relationships' | 'faith' | 'encouragement';
@@ -45,7 +46,8 @@ export const POPULAR_SITUATIONS = [
   'strength',
 ];
 
-export const helpUrl = (tr: string, slug: string) => `/${tr}/help/${slug}`;
+/** A topic page; they're in English so far, so other languages' translations use the default one */
+export const helpUrl = (tr: string, slug: string) => `/${languageOf(tr) === 'en' ? tr : DEFAULT_TRANSLATION}/help/${slug}`;
 
 // --- Matching what people type ---
 

@@ -12,9 +12,11 @@
   } from '../lib/offline.ts';
   import { preferredTranslation, TRANSLATION_EVENT } from '../lib/prefs.ts';
   import { DEFAULT_TRANSLATION, TRANSLATIONS, translationById } from '../lib/translations.ts';
+  import { messages, type UiLang } from '../i18n/index.ts';
 
-  /** True while the settings panel is open; nothing is checked until it first opens */
-  let { active }: { active: boolean } = $props();
+  /** `active`: the settings panel is open; nothing is checked until it first opens */
+  let { active, lang = 'en' }: { active: boolean; lang?: UiLang } = $props();
+  const m = $derived(messages(lang));
 
   interface InstallPrompt extends Event {
     prompt(): Promise<void>;
@@ -46,8 +48,8 @@
       supported = false;
       return;
     }
-    const m = await loadManifest();
-    bytes = m?.translations[tr]?.bytes ?? null;
+    const manifest = await loadManifest();
+    bytes = manifest?.translations[tr]?.bytes ?? null;
     status = await offlineStatus(tr);
   }
 
@@ -66,7 +68,7 @@
       await downloadTranslation(tr, (done, total) => (progress = { done, total }), controller.signal);
     } catch (e) {
       if (!controller.signal.aborted) {
-        error = navigator.onLine ? 'The download stopped. Try again to pick up where it left off.' : 'You’re offline. Connect and try again to finish.';
+        error = navigator.onLine ? m.offline.stopped : m.offline.offlineNow;
       }
     } finally {
       downloading = false;
@@ -123,39 +125,39 @@
 </script>
 
 <div class="offline">
-  <div class="eyebrow">Offline</div>
+  <div class="eyebrow">{m.offline.heading}</div>
   {#if !supported}
-    <p class="muted">This browser can’t save the Bible for offline reading.</p>
+    <p class="muted">{m.offline.unsupported}</p>
   {:else if downloading}
-    <div class="bar" role="progressbar" aria-label="Saving {abbr} for offline" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100}>
+    <div class="bar" role="progressbar" aria-label={m.offline.saving(abbr)} aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100}>
       <span style="width: {percent}%"></span>
     </div>
     <div class="row">
-      <span class="muted">Saving {abbr}… {percent}%</span>
-      <button class="btn small" onclick={() => controller?.abort()}>Cancel</button>
+      <span class="muted">{m.offline.progress(abbr, percent)}</span>
+      <button class="btn small" onclick={() => controller?.abort()}>{m.offline.cancel}</button>
     </div>
   {:else if complete}
     <div class="row">
-      <span class="done">✓ {abbr} is saved for offline reading</span>
-      <button class="btn small" onclick={remove}>Remove</button>
+      <span class="done">{m.offline.saved(abbr)}</span>
+      <button class="btn small" onclick={remove}>{m.offline.remove}</button>
     </div>
   {:else}
     <button class="btn wide" onclick={download} disabled={!status}>
-      {partial ? 'Finish downloading' : 'Download'}
+      {partial ? m.offline.finish : m.offline.download}
       {abbr}{bytes ? ` · ${formatSize(bytes)}` : ''}
     </button>
     <p class="muted">
-      Every chapter plus search, so you can read anywhere without internet.
-      {#if partial}{Math.floor(savedShare * 100)}% saved so far.{/if}
+      {m.offline.explain}
+      {#if partial}{m.offline.savedSoFar(Math.floor(savedShare * 100))}{/if}
     </p>
   {/if}
   {#if error}<p class="error" role="alert">{error}</p>{/if}
 
   {#if !installed}
     {#if installPrompt}
-      <button class="btn wide" onclick={install}>Install Booksor as an app</button>
+      <button class="btn wide" onclick={install}>{m.offline.install}</button>
     {:else if ios}
-      <p class="muted">Install on iPhone or iPad: tap <strong>Share</strong>, then <strong>Add to Home Screen</strong>.</p>
+      <p class="muted">{m.offline.iosBefore} <strong>{m.offline.iosShare}</strong>{m.offline.iosThen} <strong>{m.offline.iosAdd}</strong>.</p>
     {/if}
   {/if}
 </div>

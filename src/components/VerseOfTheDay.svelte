@@ -3,8 +3,14 @@
   import { bookBySlug, chapterUrl } from '../lib/books.ts';
   import { preferredTranslation, TRANSLATION_EVENT } from '../lib/prefs.ts';
   import { shareOrCopy, shareOrDownloadImage, verseImage } from '../lib/share.ts';
-  import { DEFAULT_TRANSLATION, translationById } from '../lib/translations.ts';
+  import { DEFAULT_TRANSLATION, defaultTranslationFor, languageOf, translationById } from '../lib/translations.ts';
   import { votdIndex, type VotdEntry, type VotdMode } from '../lib/votd.ts';
+  import { messages, type UiLang } from '../i18n/index.ts';
+
+  let { lang = 'en' }: { lang?: UiLang } = $props();
+  const m = $derived(messages(lang));
+  /** The reader's translation, if it's in this page's language */
+  const pick = (tr: string) => (languageOf(tr) === lang ? tr : defaultTranslationFor(lang));
 
   let tr = $state(DEFAULT_TRANSLATION);
   let mode = $state<VotdMode>('day');
@@ -27,8 +33,8 @@
   }
 
   onMount(() => {
-    load(preferredTranslation());
-    const onTr = (e: Event) => load((e as CustomEvent<string>).detail);
+    load(pick(preferredTranslation()));
+    const onTr = (e: Event) => load(pick((e as CustomEvent<string>).detail));
     window.addEventListener(TRANSLATION_EVENT, onTr);
     const tick = setInterval(() => (now = new Date()), 30_000);
     return () => {
@@ -49,8 +55,8 @@
       text: `“${entry.text}” — ${entry.ref} (${abbr})`,
       url: new URL(url, window.location.origin).href,
     });
-    if (result === 'copied') flash('Copied to clipboard');
-    else if (result === 'failed') flash('Couldn’t share');
+    if (result === 'copied') flash(m.votd.copied);
+    else if (result === 'failed') flash(m.votd.cantShare);
   }
 
   async function image() {
@@ -62,22 +68,22 @@
 
 <section class="votd card" aria-labelledby="votd-heading">
   <div class="top">
-    <h2 id="votd-heading" class="eyebrow">Verse of the {mode}</h2>
-    <div class="tabs" role="group" aria-label="Show a new verse every">
-      <button aria-pressed={mode === 'day'} onclick={() => (mode = 'day')}>Day</button>
-      <button aria-pressed={mode === 'hour'} onclick={() => (mode = 'hour')}>Hour</button>
+    <h2 id="votd-heading" class="eyebrow">{m.votd.heading(mode)}</h2>
+    <div class="tabs" role="group" aria-label={m.votd.every}>
+      <button aria-pressed={mode === 'day'} onclick={() => (mode = 'day')}>{m.votd.day}</button>
+      <button aria-pressed={mode === 'hour'} onclick={() => (mode = 'hour')}>{m.votd.hour}</button>
     </div>
   </div>
 
   {#if entry}
-    <blockquote class="reading">
+    <blockquote class="reading" lang={languageOf(tr)}>
       <p>{entry.text}</p>
       <footer><a href={url}>{entry.ref}</a> <span class="tr">{abbr}</span></footer>
     </blockquote>
     <div class="actions">
-      <a class="btn btn-primary" href={url}>Read chapter</a>
-      <button class="btn" onclick={share}>Share</button>
-      <button class="btn" onclick={image}>Image</button>
+      <a class="btn btn-primary" href={url}>{m.votd.read}</a>
+      <button class="btn" onclick={share}>{m.votd.share}</button>
+      <button class="btn" onclick={image}>{m.votd.image}</button>
       <span class="toast" role="status">{toast}</span>
     </div>
   {:else}

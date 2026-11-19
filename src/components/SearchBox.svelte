@@ -7,14 +7,17 @@
   import { describesSelf, helpUrl, isCrisisQuery, matchSituations, soundsPersonal } from '../lib/situations.ts';
   import CareNote from './CareNote.svelte';
   import { preferredTranslation, TRANSLATION_EVENT } from '../lib/prefs.ts';
-  import { DEFAULT_TRANSLATION, translationById } from '../lib/translations.ts';
+  import { DEFAULT_TRANSLATION, defaultTranslationFor, languageOf, translationById } from '../lib/translations.ts';
   import type { SearchHit, SearchRequest, SearchResponse } from '../lib/search.worker.ts';
+  import { bookName, messages, type UiLang } from '../i18n/index.ts';
 
   let {
     variant = 'compact',
     translation,
     placeholder,
-  }: { variant?: 'hero' | 'compact'; translation?: string; placeholder?: string } = $props();
+    lang = 'en',
+  }: { variant?: 'hero' | 'compact'; translation?: string; placeholder?: string; lang?: UiLang } = $props();
+  const m = $derived(messages(lang));
 
   let tr = $state(DEFAULT_TRANSLATION);
   let q = $state('');
@@ -34,13 +37,14 @@
   let lastLookup = 0;
   let timer: ReturnType<typeof setTimeout> | undefined;
 
-  const ref = $derived(parseReference(q));
+  const ref = $derived(parseReference(q, lang));
   const refUrl = $derived(ref ? chapterUrl(tr, ref.book, ref.chapter, ref.verse, ref.endChapter ? undefined : ref.endVerse) : null);
   const textSearch = $derived(q.trim().length >= 2 && (!ref || ref.bookOnly));
-  // "I'm struggling with anxiety", "lonely", "lost my job" -> curated situation pages
-  const situations = $derived(ref && !ref.bookOnly ? [] : matchSituations(q));
-  const crisis = $derived(isCrisisQuery(q));
-  const offerAll = $derived(!situations.length && soundsPersonal(q));
+  // "I'm struggling with anxiety", "lonely", "lost my job" -> curated situation pages (English only so far)
+  const english = $derived(languageOf(tr) === 'en');
+  const situations = $derived(!english || (ref && !ref.bookOnly) ? [] : matchSituations(q));
+  const crisis = $derived(english && isCrisisQuery(q));
+  const offerAll = $derived(english && !situations.length && soundsPersonal(q));
   // Word matches for "I want to…" or "struggling with…" are noise next to a matching situation
   const shownHits = $derived(crisis || (situations.length && (partial || describesSelf(q))) ? [] : hits);
   const situationUrls = $derived([...situations.map((m) => helpUrl(tr, m.situation.slug)), ...(offerAll ? ['/help'] : [])]);
@@ -53,7 +57,9 @@
   const abbr = $derived(translationById.get(tr)?.abbr ?? tr.toUpperCase());
 
   onMount(() => {
-    tr = translation ?? preferredTranslation();
+    // Without a translation on the page, use the reader's own, if it's in this page's language
+    const preferred = preferredTranslation();
+    tr = translation ?? (languageOf(preferred) === lang ? preferred : defaultTranslationFor(lang));
     const onTr = (e: Event) => {
       if (translation) return;
       tr = (e as CustomEvent<string>).detail;
@@ -189,8 +195,8 @@
       }}
       onkeydown={onKeydown}
       type="search"
-      placeholder={placeholder ?? (variant === 'hero' ? 'Try “the Lord is my shepherd”, “jn 3:16” or “anxious”' : 'Search or go to a verse…')}
-      aria-label="Search the Bible"
+      placeholder={placeholder ?? (variant === 'hero' ? m.search.hero : m.search.compact)}
+      aria-label={m.search.label}
       autocomplete="off"
       spellcheck="false"
       enterkeyhint="go"
@@ -203,19 +209,19 @@
   </div>
 
   {#if showPanel}
-    <div class="panel" id="search-results-{variant}" role="listbox" aria-label="Search results">
+    <div class="panel" id="search-results-{variant}" role="listbox" aria-label={m.search.results}>
       {#if crisis}
         <CareNote kind="crisis" compact />
       {/if}
 
       {#if ref && refUrl}
         <a class="result ref" href={refUrl} data-active={active === 0} role="option" aria-selected={active === 0}>
-          <span class="label">{ref.bookOnly ? 'Open book' : 'Go to'}</span>
-          <span class="title">{formatReference(ref)} <span class="tr">{abbr}</span></span>
+          <span class="label">{ref.bookOnly ? m.search.openBook : m.search.goTo}</span>
+          <span class="title">{formatReference(ref, lang)} <span class="tr">{abbr}</span></span>
           {#if preview}
-            <span class="text reading">{preview}</span>
+            <span class="text reading" lang={languageOf(tr)}>{preview}</span>
           {:else if ref.bookOnly}
-            <span class="meta">{ref.book.chapters} {ref.book.chapters === 1 ? 'chapter' : 'chapters'}</span>
+            <span class="meta">{m.books.chapters(ref.book.chapters)}</span>
           {/if}
         </a>
       {/if}
@@ -246,17 +252,13 @@
 
       {#if textSearch && !crisis && (shownHits.length || !situationUrls.length)}
         {#if status === 'loading' && !hits.length}
-          <div class="status">Loading search…</div>
+          <div class="status">{m.search.loading}</div>
         {:else if status === 'error'}
-          <div class="status">
-            {navigator.onLine
-              ? 'Search couldn’t load. Check your connection and try again.'
-              : 'Search needs a connection the first time. To search offline, download this translation in settings (Aa).'}
-          </div>
+          <div class="status">{navigator.onLine ? m.search.failed : m.search.needsConnection}</div>
         {:else if shownHits.length}
           <div class="status">
-            {partial ? 'No verse has all of those words. Closest matches: ' : ''}
-            {total > shownHits.length ? `Top ${shownHits.length} of ${total.toLocaleString()} verses` : `${shownHits.length} ${shownHits.length === 1 ? 'verse' : 'verses'}`}
+            {partial ? m.search.closest : ''}
+            {total > shownHits.length ? m.search.top(shownHits.length, total) : m.search.count(shownHits.length)}
           </div>
           {#each shownHits as h, i (h.b + ':' + h.c + ':' + h.v)}
             {@const idx = i + hitOffset}
@@ -269,14 +271,14 @@
               onmouseenter={() => (active = idx)}
             >
               <span class="title">
-                {BOOKS[h.b].name} {h.c}:{h.v}
-                {#if h.otherWording}<span class="other" title="Your words matched how another translation phrases this verse">matched another translation</span>{/if}
+                {bookName(h.b, lang)} {h.c}:{h.v}
+                {#if h.otherWording}<span class="other" title={m.search.otherWordingTitle}>{m.search.otherWording}</span>{/if}
               </span>
-              <span class="text reading">{@html highlight(h.t, h.terms)}</span>
+              <span class="text reading" lang={languageOf(tr)}>{@html highlight(h.t, h.terms, languageOf(tr))}</span>
             </a>
           {/each}
         {:else if status === 'ready' && !ref && !situationUrls.length}
-          <div class="status">No verses found for “{q}”.</div>
+          <div class="status">{m.search.none(q)}</div>
         {/if}
       {/if}
     </div>

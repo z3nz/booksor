@@ -22,6 +22,11 @@
   import { estimateVerseAt, estimateVerseTime, formatTime, NARRATOR, narrationFor, type Narration } from '../lib/audio.ts';
   import { loadSettings, updateSettings } from '../lib/prefs.ts';
   import { pickVoice, rankVoices, RATES, speechChunks } from '../lib/speech.ts';
+  import { followPageLang, messages, type UiLang } from '../i18n/index.ts';
+
+  // Menus follow the language of the page on screen
+  let uiLang = $state<UiLang>('en');
+  const m = $derived(messages(uiLang));
 
   const NARRATOR_OPTION = '__narrator';
   const SKIP_SECONDS = 15;
@@ -130,7 +135,7 @@
     // Must be called straight from the tap (or from the previous recording ending) or phones refuse
     audio.play().catch((e: DOMException) => {
       if (id !== run) return;
-      if (e.name === 'NotAllowedError') stop('Press play to keep listening');
+      if (e.name === 'NotAllowedError') stop(m.listen.pressPlay);
       // other failures arrive as the audio element's error event
     });
   }
@@ -148,7 +153,7 @@
     const n = narration;
     if (!n || mode !== 'narrator') return;
     if (!continueNext || !n.nextUrl) {
-      stop(n.nextUrl ? 'End of chapter' : 'The end');
+      stop(n.nextUrl ? m.listen.endOfChapter : m.listen.theEnd);
       return;
     }
     changeNarration(n.nextUrl);
@@ -162,7 +167,7 @@
     const verse = narratedText ? estimateVerseAt(narratedText.verses, current, duration) : null;
     stop();
     if (!hasSpeech()) {
-      status = 'Couldn’t load the recording';
+      status = m.listen.cantLoadRecording;
       return;
     }
     startVoice({ action: 'start', url: n.url, verse: verse ?? undefined });
@@ -250,14 +255,14 @@
       u.onend = () => say(k + 1);
       u.onerror = (e) => {
         if (id !== run || e.error === 'interrupted' || e.error === 'canceled') return;
-        stop(e.error === 'not-allowed' ? 'Press play to keep listening' : 'Couldn’t read aloud on this device');
+        stop(e.error === 'not-allowed' ? m.listen.pressPlay : m.listen.cantSpeak);
       };
       speechSynthesis.speak(u);
     };
     say(0);
     // Some browsers quietly refuse to speak; don't sit there looking busy
     setTimeout(() => {
-      if (id === run && !started && !speechSynthesis.speaking) stop('Press play to keep listening');
+      if (id === run && !started && !speechSynthesis.speaking) stop(m.listen.pressPlay);
     }, 4000);
   }
 
@@ -266,16 +271,16 @@
     if (!chapter) return;
     const following = onScreen();
     if (!continueNext || !chapter.nextUrl) {
-      stop(chapter.nextUrl ? 'End of chapter' : 'The end');
+      stop(chapter.nextUrl ? m.listen.endOfChapter : m.listen.theEnd);
       clearMarks();
       return;
     }
-    stop('Next chapter…');
+    stop(m.listen.nextChapter);
     const id = run;
     const next = await load(chapter.nextUrl);
     if (id !== run) return;
     if (!next) {
-      stop('Couldn’t load the next chapter');
+      stop(m.listen.cantLoadNext);
       return;
     }
     chapter = next;
@@ -300,7 +305,7 @@
 
   function startVoice(req: ListenRequest) {
     if (!hasSpeech()) {
-      status = 'This browser can’t read aloud';
+      status = m.listen.noSpeech;
       return;
     }
     const url = chapterPath(req.url ?? window.location.pathname);
@@ -313,12 +318,12 @@
     };
     if (ch) begin(ch);
     else {
-      stop('Loading…');
+      stop(m.listen.loading);
       const id = run;
       void load(url).then((c) => {
         if (id !== run) return;
         if (c) begin(c);
-        else stop('Couldn’t load this chapter');
+        else stop(m.listen.cantLoad);
       });
     }
   }
@@ -447,6 +452,7 @@
   });
 
   onMount(() => {
+    const stopLang = followPageLang((l) => (uiLang = l));
     const s = loadSettings();
     rate = s.rate;
     voiceName = s.voice;
@@ -478,6 +484,7 @@
     window.addEventListener('pagehide', onHide);
     return () => {
       stop();
+      stopLang();
       window.removeEventListener(LISTEN_REQUEST, onRequest);
       document.removeEventListener('astro:page-load', onPageLoad);
       document.removeEventListener('astro:after-swap', setSpace);
@@ -493,7 +500,7 @@
   preload="none"
   onplay={() => mode === 'narrator' && ((playing = true), (status = ''))}
   onpause={() => mode === 'narrator' && (playing = false)}
-  onwaiting={() => mode === 'narrator' && (status = 'Loading…')}
+  onwaiting={() => mode === 'narrator' && (status = m.listen.loading)}
   onplaying={() => mode === 'narrator' && (status = '')}
   ontimeupdate={() => (current = audio.currentTime)}
   ondurationchange={() => ((duration = audio.duration), setPosition())}
@@ -504,32 +511,32 @@
 ></audio>
 
 {#if open}
-  <div class="player card" role="region" aria-label="Read aloud" bind:offsetHeight={barHeight}>
+  <div class="player card" role="region" aria-label={m.listen.label} bind:offsetHeight={barHeight}>
     {#if showOptions}
       <div class="options">
         <label>
-          <span>Voice</span>
+          <span>{m.listen.voice}</span>
           <select
             value={mode === 'narrator' ? NARRATOR_OPTION : (voice?.name ?? '')}
             onchange={(e) => setVoice(e.currentTarget.value)}
           >
             {#if canNarrate}
-              <option value={NARRATOR_OPTION}>{NARRATOR.name} (recorded narrator)</option>
+              <option value={NARRATOR_OPTION}>{m.listen.narrator(NARRATOR.name)}</option>
             {/if}
             {#each available as v (v.name)}
               <option value={v.name}>{v.name.replace(/^Microsoft |^Google /, '')} ({v.lang})</option>
             {:else}
-              <option value="">Default voice</option>
+              <option value="">{m.listen.defaultVoice}</option>
             {/each}
           </select>
         </label>
         <label class="check">
           <input type="checkbox" checked={continueNext} onchange={(e) => setContinue(e.currentTarget.checked)} />
-          <span>Keep going into the next chapter</span>
+          <span>{m.listen.keepGoing}</span>
         </label>
         {#if mode === 'narrator'}
           <p class="credit">
-            Narrated by {NARRATOR.name}, courtesy of <a href={NARRATOR.creditUrl} target="_blank" rel="noopener">{NARRATOR.credit}</a>
+            {m.listen.narratedBy(NARRATOR.name)} <a href={NARRATOR.creditUrl} target="_blank" rel="noopener">{NARRATOR.credit}</a>
           </p>
         {/if}
       </div>
@@ -539,7 +546,7 @@
       <input
         class="seek"
         type="range"
-        aria-label="Position in chapter"
+        aria-label={m.listen.position}
         min="0"
         max={duration || 1}
         step="1"
@@ -551,46 +558,46 @@
 
     <div class="controls">
       {#if mode === 'narrator'}
-        <button class="btn btn-icon" aria-label={`Back ${SKIP_SECONDS} seconds`} onclick={() => step(-1)} disabled={!duration}>
+        <button class="btn btn-icon" aria-label={m.listen.back(SKIP_SECONDS)} onclick={() => step(-1)} disabled={!duration}>
           <Icon name="back" size={16} />
         </button>
       {:else}
-        <button class="btn btn-icon" aria-label="Previous verse" onclick={() => step(-1)} disabled={!chapter}>
+        <button class="btn btn-icon" aria-label={m.listen.prevVerse} onclick={() => step(-1)} disabled={!chapter}>
           <Icon name="prev" size={16} />
         </button>
       {/if}
-      <button class="btn btn-icon btn-primary main" aria-label={playing ? 'Pause' : 'Play'} onclick={toggle} disabled={!nowUrl}>
+      <button class="btn btn-icon btn-primary main" aria-label={playing ? m.listen.pause : m.listen.play} onclick={toggle} disabled={!nowUrl}>
         <Icon name={playing ? 'pause' : 'play'} size={20} filled />
       </button>
       {#if mode === 'narrator'}
-        <button class="btn btn-icon" aria-label={`Forward ${SKIP_SECONDS} seconds`} onclick={() => step(1)} disabled={!duration}>
+        <button class="btn btn-icon" aria-label={m.listen.forward(SKIP_SECONDS)} onclick={() => step(1)} disabled={!duration}>
           <Icon name="forward" size={16} />
         </button>
       {:else}
-        <button class="btn btn-icon" aria-label="Next verse" onclick={() => step(1)} disabled={!chapter}>
+        <button class="btn btn-icon" aria-label={m.listen.nextVerse} onclick={() => step(1)} disabled={!chapter}>
           <Icon name="next" size={16} />
         </button>
       {/if}
-      <select class="rate" aria-label="Reading speed" value={rate} onchange={(e) => setRate(Number(e.currentTarget.value))}>
+      <select class="rate" aria-label={m.listen.speed} value={rate} onchange={(e) => setRate(Number(e.currentTarget.value))}>
         {#each RATES as r (r)}
           <option value={r}>{r}×</option>
         {/each}
       </select>
       {#if nowUrl}
         {@const verse = mode === 'narrator' ? approxVerse : verseNumber}
-        <a class="now" href={verse ? `${nowUrl}#v${verse}` : nowUrl} title="Go to what's playing">
+        <a class="now" href={verse ? `${nowUrl}#v${verse}` : nowUrl} title={m.listen.goToPlaying}>
           <span class="now-title">{nowTitle}</span>
           <span class="now-status" class:has-status={!!status}>
-            {status || (mode === 'narrator' ? `${formatTime(current)} / ${formatTime(duration)}` : `Verse ${verseNumber}`)}
+            {status || (mode === 'narrator' ? `${formatTime(current)} / ${formatTime(duration)}` : m.listen.verseN(verseNumber))}
           </span>
         </a>
       {:else}
         <span class="now"><span class="now-status has-status">{status}</span></span>
       {/if}
-      <button class="btn btn-icon" aria-label="Options" aria-expanded={showOptions} onclick={() => (showOptions = !showOptions)}>
+      <button class="btn btn-icon" aria-label={m.listen.options} aria-expanded={showOptions} onclick={() => (showOptions = !showOptions)}>
         <Icon name="sliders" size={16} />
       </button>
-      <button class="btn btn-icon" aria-label="Stop and close" onclick={close}><Icon name="close" size={16} /></button>
+      <button class="btn btn-icon" aria-label={m.listen.stop} onclick={close}><Icon name="close" size={16} /></button>
     </div>
   </div>
 {/if}

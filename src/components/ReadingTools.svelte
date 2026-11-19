@@ -8,8 +8,10 @@
   import { loadSettings, updateSettings } from '../lib/prefs.ts';
   import { scrollPixelsPerSecond } from '../lib/speech.ts';
   import { STUDY_EVENT } from '../lib/xref.ts';
+  import { messages, type UiLang } from '../i18n/index.ts';
 
-  let { nextUrl }: { nextUrl: string | null } = $props();
+  let { nextUrl, lang = 'en' }: { nextUrl: string | null; lang?: UiLang } = $props();
+  const m = $derived(messages(lang));
 
   const SCROLL_CARRY_KEY = 'booksor:autoplay';
 
@@ -90,7 +92,7 @@
   function endOfChapter() {
     stopScroll();
     if (continueNext && nextUrl) {
-      status = 'Next chapter…';
+      status = m.tools.nextChapter;
       nextTimer = setTimeout(() => {
         try {
           sessionStorage.setItem(SCROLL_CARRY_KEY, 'scroll');
@@ -100,7 +102,7 @@
         void navigate(nextUrl!);
       }, 2500);
     } else {
-      status = nextUrl ? 'End of chapter' : 'The end';
+      status = nextUrl ? m.tools.endOfChapter : m.tools.theEnd;
     }
   }
 
@@ -161,7 +163,7 @@
         sessionStorage.removeItem(SCROLL_CARRY_KEY);
         scrolling = true;
         window.scrollTo(0, 0);
-        status = 'Starting…';
+        status = m.tools.starting;
         nextTimer = setTimeout(startScroll, 1500);
       }
     } catch {
@@ -185,56 +187,56 @@
   });
 </script>
 
-<div class="tools" role="group" aria-label="Reading tools">
+<div class="tools" role="group" aria-label={m.tools.label}>
   <button class="btn tool" aria-pressed={listening} onclick={toggleListen}>
-    <Icon name="listen" size={16} />Listen
+    <Icon name="listen" size={16} />{m.tools.listen}
   </button>
   <button class="btn tool" aria-pressed={scrolling} onclick={toggleScrollBar}>
-    <Icon name="scroll" size={16} />Auto-scroll
+    <Icon name="scroll" size={16} />{m.tools.autoScroll}
   </button>
   <button class="btn tool" aria-pressed={focus} onclick={toggleFocus}>
-    <Icon name="focus" size={16} />Focus
+    <Icon name="focus" size={16} />{m.tools.focus}
   </button>
-  <button class="btn tool" aria-pressed={study} onclick={toggleStudy} title="Show related passages for each verse">
-    <Icon name="study" size={16} />Study
+  <button class="btn tool" aria-pressed={study} onclick={toggleStudy} title={m.tools.studyTitle}>
+    <Icon name="study" size={16} />{m.tools.study}
   </button>
 </div>
 
 {#if focus}
-  <button class="btn exit-focus" onclick={toggleFocus} title="Exit focus mode (Esc)">
-    <Icon name="unfocus" size={16} />Exit focus
+  <button class="btn exit-focus" onclick={toggleFocus} title={m.tools.exitFocusTitle}>
+    <Icon name="unfocus" size={16} />{m.tools.exitFocus}
   </button>
 {/if}
 
 {#if scrolling}
-  <div class="scroller card" role="region" aria-label="Auto-scroll" bind:offsetHeight={barHeight}>
+  <div class="scroller card" role="region" aria-label={m.tools.autoScroll} bind:offsetHeight={barHeight}>
     {#if showOptions}
       <div class="options">
         <label class="check">
           <input type="checkbox" checked={continueNext} onchange={(e) => setContinue(e.currentTarget.checked)} />
-          <span>Keep going into the next chapter</span>
+          <span>{m.tools.keepGoing}</span>
         </label>
       </div>
     {/if}
     <div class="controls">
-      <button class="btn btn-icon" aria-label="Slower" disabled={scrollSpeed <= 1} onclick={() => setScrollSpeed(scrollSpeed - 1)}>
+      <button class="btn btn-icon" aria-label={m.tools.slower} disabled={scrollSpeed <= 1} onclick={() => setScrollSpeed(scrollSpeed - 1)}>
         <Icon name="minus" size={16} />
       </button>
       <button
         class="btn btn-icon btn-primary main"
-        aria-label={playing ? 'Pause' : 'Start scrolling'}
+        aria-label={playing ? m.tools.pause : m.tools.startScrolling}
         onclick={() => (playing ? stopScroll() : startScroll())}
       >
         <Icon name={playing ? 'pause' : 'play'} size={20} filled />
       </button>
-      <button class="btn btn-icon" aria-label="Faster" disabled={scrollSpeed >= 10} onclick={() => setScrollSpeed(scrollSpeed + 1)}>
+      <button class="btn btn-icon" aria-label={m.tools.faster} disabled={scrollSpeed >= 10} onclick={() => setScrollSpeed(scrollSpeed + 1)}>
         <Icon name="plus" size={16} />
       </button>
-      <span class="where">{status || `Speed ${scrollSpeed}`}</span>
-      <button class="btn btn-icon" aria-label="Options" aria-expanded={showOptions} onclick={() => (showOptions = !showOptions)}>
+      <span class="where">{status || m.tools.speed(scrollSpeed)}</span>
+      <button class="btn btn-icon" aria-label={m.tools.options} aria-expanded={showOptions} onclick={() => (showOptions = !showOptions)}>
         <Icon name="sliders" size={16} />
       </button>
-      <button class="btn btn-icon" aria-label="Close" onclick={closeScroll}><Icon name="close" size={16} /></button>
+      <button class="btn btn-icon" aria-label={m.tools.close} onclick={closeScroll}><Icon name="close" size={16} /></button>
     </div>
   </div>
 {/if}

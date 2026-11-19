@@ -3,6 +3,7 @@
 // scripts/export-static.ts writes one small file per chapter, the same for every translation, listing
 // each verse's related passages. Their text comes from search/{tr}.json, the whole translation's text,
 // which search and offline reading already use; it's loaded the first time someone opens the list.
+import { bookName } from '../i18n/index.ts';
 import { BOOKS, chapterUrl, verseKey } from './books.ts';
 import type { SearchRow } from './types.ts';
 
@@ -53,9 +54,9 @@ export function relatedTo(file: XrefFile, book: number, chapter: number, verses:
     .sort((a, b) => b.votes - a.votes || a.target[0] - b.target[0] || a.target[1] - b.target[1] || a.target[2] - b.target[2]);
 }
 
-/** "Romans 5:8", "1 John 4:9–10", "Hebrews 6:20–7:3" */
-export function targetLabel([b, c, v, ec, ev]: XrefTarget): string {
-  const name = BOOKS[b]?.name ?? '';
+/** "Romans 5:8", "1 John 4:9–10", "Hebrews 6:20–7:3" (book names in `lang`) */
+export function targetLabel([b, c, v, ec, ev]: XrefTarget, lang = 'en'): string {
+  const name = bookName(b, lang);
   if (ec !== c) return `${name} ${c}:${v}–${ec}:${ev}`;
   return ev !== v ? `${name} ${c}:${v}–${ev}` : `${name} ${c}:${v}`;
 }

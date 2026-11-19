@@ -6,7 +6,7 @@
   import { onMount } from 'svelte';
   import { navigate } from 'astro:transitions/client';
   import Icon from './Icon.svelte';
-  import { BOOKS } from '../lib/books.ts';
+  import { bookName, followPageLang, messages, type UiLang } from '../i18n/index.ts';
   import { loadSettings } from '../lib/prefs.ts';
   import { compressVerses } from '../lib/share.ts';
   import {
@@ -38,6 +38,10 @@
   const WIDE = '(min-width: 1100px)';
   const PANEL_WIDTH = 360;
 
+  // Stays on screen across pages, so its menus follow each page's language
+  let lang = $state<UiLang>('en');
+  const m = $derived(messages(lang));
+
   let page = $state.raw<Page | null>(null);
   let path = $state('');
   let hash = $state('');
@@ -60,7 +64,7 @@
   const docked = $derived(open && wide);
   const away = $derived(!!source && !!page && (page.book !== source.book || page.chapter !== source.chapter));
 
-  const label = (s: Source) => `${BOOKS[s.book].name} ${s.chapter}:${compressVerses(s.verses)}`;
+  const label = (s: Source) => `${bookName(s.book, lang)} ${s.chapter}:${compressVerses(s.verses)}`;
   const sourceUrl = (s: Source) => `/${tr}/${s.slug}/${s.chapter}#v${s.verses[0]}${s.verses.length > 1 && isRun(s.verses) ? `-${s.verses.at(-1)}` : ''}`;
   const isRun = (vs: number[]) => vs.every((v, i) => i === 0 || v === vs[i - 1] + 1);
   const same = (a: Source, b: Source) => a.book === b.book && a.chapter === b.chapter && a.verses.join() === b.verses.join();
@@ -163,6 +167,7 @@
   $effect(setSpace);
 
   onMount(() => {
+    const stopLang = followPageLang((l) => (lang = l));
     const mq = window.matchMedia(WIDE);
     wide = mq.matches;
     study = loadSettings().study;
@@ -209,6 +214,7 @@
     document.addEventListener('astro:after-swap', setSpace);
     document.addEventListener('click', onClick);
     return () => {
+      stopLang();
       mq.removeEventListener('change', onWidth);
       window.removeEventListener(XREF_OPEN, onOpen);
       window.removeEventListener(VERSE_SELECTION, onSelect);
@@ -225,53 +231,53 @@
 </script>
 
 {#if open && collapsed && !wide && source}
-  <div class="mini card" role="region" aria-label="Related passages">
-    <button class="btn btn-icon" aria-label="Previous related passage" onclick={() => step(-1)} disabled={current === 0}>
+  <div class="mini card" role="region" aria-label={m.xref.panel}>
+    <button class="btn btn-icon" aria-label={m.xref.prev} onclick={() => step(-1)} disabled={current === 0}>
       <Icon name="prev" size={14} />
     </button>
-    <button class="mini-label" onclick={() => (collapsed = false)} aria-label="Show the list">
+    <button class="mini-label" onclick={() => (collapsed = false)} aria-label={m.xref.showList}>
       {#if current >= 0}
-        <strong>{targetLabel(items[current].target)}</strong>
-        <span>{current + 1} of {items.length} related to {label(source)}</span>
+        <strong>{targetLabel(items[current].target, lang)}</strong>
+        <span>{m.xref.position(current + 1, items.length, label(source))}</span>
       {:else}
-        <strong>Related to {label(source)}</strong>
-        <span>{items.length} passages</span>
+        <strong>{m.xref.relatedTo} {label(source)}</strong>
+        <span>{m.xref.count(items.length)}</span>
       {/if}
     </button>
-    <button class="btn btn-icon" aria-label="Next related passage" onclick={() => step(1)} disabled={current === items.length - 1}>
+    <button class="btn btn-icon" aria-label={m.xref.next} onclick={() => step(1)} disabled={current === items.length - 1}>
       <Icon name="next" size={14} />
     </button>
-    <button class="btn btn-icon" aria-label="Close" onclick={close}><Icon name="close" size={14} /></button>
+    <button class="btn btn-icon" aria-label={m.xref.closeShort} onclick={close}><Icon name="close" size={14} /></button>
   </div>
 {:else if open}
-  <aside class="panel" class:docked class:sheet={!wide} aria-label="Related passages">
+  <aside class="panel" class:docked class:sheet={!wide} aria-label={m.xref.panel}>
     <header class="head">
       <div class="title">
         {#if source}
-          <span class="eyebrow">Related to</span>
+          <span class="eyebrow">{m.xref.relatedTo}</span>
           <h2>{label(source)}</h2>
         {:else}
-          <span class="eyebrow">Study</span>
-          <h2>Related passages</h2>
+          <span class="eyebrow">{m.xref.study}</span>
+          <h2>{m.xref.panel}</h2>
         {/if}
       </div>
       {#if !wide && source}
-        <button class="btn btn-icon" aria-label="Shrink" onclick={() => (collapsed = true)}>
+        <button class="btn btn-icon" aria-label={m.xref.shrink} onclick={() => (collapsed = true)}>
           <Icon name="scroll" size={16} />
         </button>
       {/if}
-      <button class="btn btn-icon" aria-label="Close related passages" onclick={close}><Icon name="close" size={16} /></button>
+      <button class="btn btn-icon" aria-label={m.xref.close} onclick={close}><Icon name="close" size={16} /></button>
     </header>
 
     {#if trail.length || away}
-      <nav class="trail" aria-label="Where you've been">
+      <nav class="trail" aria-label={m.xref.trail}>
         {#each trail as s, i (i)}
           <button class="crumb" onclick={() => backTo(i)}>{label(s)}</button>
           <span class="sep" aria-hidden="true">›</span>
         {/each}
         {#if source}
           {#if away}
-            <a class="crumb" href={sourceUrl(source)}>{trail.length ? label(source) : `← Back to ${label(source)}`}</a>
+            <a class="crumb" href={sourceUrl(source)}>{trail.length ? label(source) : m.xref.backTo(label(source))}</a>
           {:else}
             <span class="crumb here">{label(source)}</span>
           {/if}
@@ -282,23 +288,22 @@
     <div class="body" bind:this={list}>
       {#if !source}
         <p class="hint">
-          Tap a verse number badge <span class="badge-sample">12</span>, or select a verse and choose <strong>Related</strong>,
-          to see passages that shed light on it.
+          {m.xref.hintBefore} <span class="badge-sample">12</span>{m.xref.hintMiddle} <strong>{m.verse.related}</strong>{m.xref.hintAfter}
         </p>
       {:else if failed}
-        <p class="hint">Couldn’t load related passages. Check your connection and try again.</p>
+        <p class="hint">{m.xref.failed}</p>
       {:else if !file}
-        <p class="hint">Loading…</p>
+        <p class="hint">{m.xref.loading}</p>
       {:else if !items.length}
-        <p class="hint">No related passages for this verse.</p>
+        <p class="hint">{m.xref.none}</p>
       {:else}
         <ol class="items">
           {#each shown as r, i (r.target.join())}
             <li>
               <a href={targetUrl(tr, r.target)} aria-current={i === current ? 'page' : undefined} onclick={() => picked(i)}>
-                <strong>{targetLabel(r.target)}</strong>
+                <strong>{targetLabel(r.target, lang)}</strong>
                 {#if texts}
-                  <span class="text reading">{texts.passage(r.target)}</span>
+                  <span class="text reading" {lang}>{texts.passage(r.target)}</span>
                 {:else}
                   <span class="text placeholder" aria-hidden="true"></span>
                 {/if}
@@ -308,13 +313,13 @@
         </ol>
         {#if items.length > FIRST}
           <button class="btn more" onclick={() => (showAll = !showAll)}>
-            {showAll ? 'Show fewer' : `Show all ${items.length}`}
+            {showAll ? m.xref.showFewer : m.xref.showAll(items.length)}
           </button>
         {/if}
       {/if}
       <p class="credit">
-        Cross-references from <a href="https://www.openbible.info/labs/cross-references/" target="_blank" rel="noopener">OpenBible.info</a>
-        (CC BY), ranked by readers’ votes.
+        {m.xref.creditBefore} <a href="https://www.openbible.info/labs/cross-references/" target="_blank" rel="noopener">OpenBible.info</a>
+        {m.xref.creditAfter}
       </p>
     </div>
   </aside>

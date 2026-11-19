@@ -1,0 +1,230 @@
+---
+// The home page, one per menu language (/ and /es)
+import Base from '../layouts/Base.astro';
+import SearchBox from './SearchBox.svelte';
+import VerseOfTheDay from './VerseOfTheDay.svelte';
+import { bookName, homeUrl, messages, UI_LANGS, type UiLang } from '../i18n/index.ts';
+import { BOOKS, bookBySlug, chapterUrl } from '../lib/books.ts';
+import { DEFAULT_TRANSLATION, defaultTranslationFor } from '../lib/translations.ts';
+import { helpUrl, POPULAR_SITUATIONS, situationBySlug } from '../lib/situations.ts';
+
+interface Props {
+  lang: UiLang;
+}
+const { lang } = Astro.props;
+const m = messages(lang);
+const translation = defaultTranslationFor(lang);
+
+const popular: [string, number][] = [
+  ['genesis', 1],
+  ['psalms', 23],
+  ['isaiah', 53],
+  ['matthew', 5],
+  ['john', 3],
+  ['romans', 8],
+  ['1-corinthians', 13],
+  ['revelation', 21],
+];
+const testaments = [
+  { id: 'OT', label: m.books.ot },
+  { id: 'NT', label: m.books.nt },
+] as const;
+// Links point at the language's main translation; the script below swaps in the reader's saved one.
+const href = (slug: string, chapter = 1) => chapterUrl(translation, bookBySlug.get(slug)!, chapter);
+const other = UI_LANGS.find((l) => l !== lang)!;
+---
+
+<Base
+  title={m.home.title}
+  description={m.home.description}
+  showSearch={false}
+  lang={lang}
+  alternates={[...UI_LANGS.map((l) => [l, homeUrl(l)] as [string, string]), ['x-default', '/']]}
+>
+  <section class="hero container">
+    <a class="lang-hint" href={homeUrl(other)} lang={other} hreflang={other} data-lang-hint={other} hidden>{m.home.otherLanguage} →</a>
+    <h1>{m.home.heading1}<br /><em>{m.home.heading2}</em></h1>
+    <p class="lead">{m.home.lead}</p>
+    <div class="hero-search">
+      <SearchBox client:load variant="hero" lang={lang} />
+    </div>
+    <div class="popular" aria-label={m.home.popular}>
+      <a class="btn btn-primary continue" href={href('john')} data-continue data-label={m.home.continueAt('{place}')} hidden>
+        {m.home.continueReading}
+      </a>
+      {
+        popular.map(([slug, ch]) => (
+          <a class="btn" href={href(slug, ch)} data-tr-link>
+            {bookName(bookBySlug.get(slug)!, lang)} {ch}
+          </a>
+        ))
+      }
+    </div>
+  </section>
+
+  <div class="container narrow">
+    <VerseOfTheDay client:load lang={lang} />
+  </div>
+
+  {lang === 'en' && <section class="container narrow situations" aria-labelledby="situations-heading">
+    <h2 id="situations-heading">What are you going through?</h2>
+    <p>Verses for the moments that matter, chosen with care.</p>
+    <div class="chips">
+      {
+        POPULAR_SITUATIONS.map((slug) => (
+          <a class="btn" href={helpUrl(DEFAULT_TRANSLATION, slug)} data-tr-link>
+            {situationBySlug.get(slug)!.title}
+          </a>
+        ))
+      }
+      <a class="btn more" href="/help">See all →</a>
+    </div>
+  </section>}
+
+  <section class="container books-section" aria-labelledby="books-heading">
+    <h2 id="books-heading" class="visually-hidden">{m.home.books}</h2>
+    {
+      testaments.map((t) => (
+        <div class="testament">
+          <h3 class="eyebrow">{t.label}</h3>
+          <div class="books">
+            {BOOKS.filter((b) => b.testament === t.id).map((b) => (
+              <a href={href(b.slug)} data-tr-link>
+                {bookName(b, lang)}
+              </a>
+            ))}
+          </div>
+        </div>
+      ))
+    }
+  </section>
+</Base>
+
+<script>
+  import { bookName, pageLang } from '../i18n/index.ts';
+  import { bookBySlug, chapterUrl } from '../lib/books.ts';
+  import { followPreferredTranslation } from '../lib/links.ts';
+  import { loadLastRead } from '../lib/prefs.ts';
+
+  followPreferredTranslation((tr) => {
+    const resume = document.querySelector<HTMLAnchorElement>('a[data-continue]');
+    const last = loadLastRead();
+    const lastBook = last && bookBySlug.get(last.slug);
+    if (resume && last && lastBook) {
+      const place = `${bookName(lastBook, pageLang())} ${last.chapter}${last.verse > 1 ? `:${last.verse}` : ''}`;
+      resume.href = `${chapterUrl(tr, lastBook, last.chapter)}#at${last.verse}`;
+      resume.textContent = (resume.dataset.label ?? '{place}').replace('{place}', place);
+      resume.hidden = false;
+    }
+    // Someone whose browser prefers the other language: offer it
+    const hint = document.querySelector<HTMLAnchorElement>('a[data-lang-hint]');
+    if (hint) {
+      const wanted = hint.dataset.langHint!;
+      hint.hidden = !navigator.languages.some((l) => l.toLowerCase().startsWith(wanted));
+    }
+  });
+</script>
+
+<style>
+  .lang-hint {
+    display: inline-block;
+    margin-bottom: 18px;
+    padding: 4px 12px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    color: var(--accent);
+    font-size: 14px;
+    text-decoration: none;
+  }
+  .lang-hint[hidden] {
+    display: none;
+  }
+  .hero {
+    max-width: 760px;
+    padding-top: clamp(40px, 9vw, 96px);
+    padding-bottom: 28px;
+    text-align: center;
+  }
+  h1 {
+    margin: 0;
+    font-family: var(--font-reading);
+    font-size: clamp(38px, 7.5vw, 64px);
+    font-weight: 600;
+    line-height: 1.08;
+    letter-spacing: -0.02em;
+  }
+  h1 em {
+    color: var(--accent);
+    font-weight: 500;
+  }
+  .lead {
+    max-width: 520px;
+    margin: 18px auto 28px;
+    color: var(--muted);
+    font-size: 18px;
+  }
+  .popular {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 20px;
+  }
+  .popular .btn {
+    min-height: 34px;
+    font-size: 13px;
+  }
+  .narrow {
+    max-width: 760px;
+  }
+  .situations {
+    margin-top: 48px;
+    text-align: center;
+  }
+  .situations h2 {
+    margin: 0;
+    font-family: var(--font-reading);
+    font-size: clamp(24px, 4vw, 30px);
+    font-weight: 600;
+  }
+  .situations p {
+    margin: 6px 0 16px;
+    color: var(--muted);
+  }
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+  }
+  .chips .btn {
+    min-height: 36px;
+    font-size: 14px;
+  }
+  .chips .more {
+    color: var(--accent);
+  }
+  .books-section {
+    max-width: 1000px;
+    margin-top: 48px;
+  }
+  .testament + .testament {
+    margin-top: 28px;
+  }
+  .books {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 4px 12px;
+    margin-top: 10px;
+  }
+  .books a {
+    padding: 6px 8px;
+    margin: 0 -8px;
+    border-radius: 8px;
+    color: var(--text);
+    text-decoration: none;
+  }
+  .books a:hover {
+    background: var(--surface-2);
+  }
+</style>

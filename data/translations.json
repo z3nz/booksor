@@ -35,5 +35,18 @@
     "sourceUrl": "https://ebible.org/Scriptures/eng-web_vpl.zip",
     "license": "Public Domain",
     "attribution": "World English Bible, public domain. \"World English Bible\" is a trademark of eBible.org. Text from eBible.org."
+  },
+  {
+    "id": "rv1909",
+    "abbr": "RVR1909",
+    "name": "Reina-Valera 1909",
+    "language": "es",
+    "languageName": "Español",
+    "dir": "ltr",
+    "source": "spaRV1909",
+    "sourceUrl": "https://ebible.org/Scriptures/spaRV1909_vpl.zip",
+    "license": "Dominio público",
+    "attribution": "Santa Biblia, Reina-Valera 1909, dominio público. Texto de eBible.org.",
+    "suppliedWords": true
   }
 ]

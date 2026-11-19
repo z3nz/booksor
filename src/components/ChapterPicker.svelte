@@ -2,8 +2,12 @@
   import { navigate } from 'astro:transitions/client';
   import { BOOKS, bookBySlug, chapterUrl } from '../lib/books.ts';
   import type { Book } from '../lib/types.ts';
+  import { fold } from '../lib/reference.ts';
+  import { bookName, messages, type UiLang } from '../i18n/index.ts';
 
-  let { tr, slug, chapter }: { tr: string; slug: string; chapter: number } = $props();
+  let { tr, slug, chapter, lang = 'en' }: { tr: string; slug: string; chapter: number; lang?: UiLang } = $props();
+  const m = $derived(messages(lang));
+  const name = (b: Book) => bookName(b, lang);
 
   let dialog: HTMLDialogElement;
   let book = $state<Book | null>(null);
@@ -11,7 +15,7 @@
 
   const current = $derived(bookBySlug.get(slug)!);
   const shown = $derived(
-    filter.trim() ? BOOKS.filter((b) => b.name.toLowerCase().includes(filter.trim().toLowerCase())) : BOOKS,
+    filter.trim() ? BOOKS.filter((b) => fold(name(b)).includes(fold(filter.trim()))) : BOOKS,
   );
 
   function openPicker() {
@@ -34,19 +38,19 @@
 </script>
 
 <button class="trigger" onclick={openPicker} aria-haspopup="dialog">
-  <span>{current.name} {chapter}</span>
+  <span>{name(current)} {chapter}</span>
   <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
     <path d="m6 9 6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
   </svg>
 </button>
 
-<dialog bind:this={dialog} onclick={onDialogClick} aria-label="Choose a book and chapter">
+<dialog bind:this={dialog} onclick={onDialogClick} aria-label={m.picker.label}>
   <div class="inner">
     {#if book}
       <div class="head">
-        <button class="btn" onclick={() => (book = null)}>← Books</button>
-        <h2>{book.name}</h2>
-        <button class="btn btn-icon" aria-label="Close" onclick={() => dialog.close()}>✕</button>
+        <button class="btn" onclick={() => (book = null)}>{m.picker.back}</button>
+        <h2>{name(book)}</h2>
+        <button class="btn btn-icon" aria-label={m.picker.close} onclick={() => dialog.close()}>✕</button>
       </div>
       <div class="chapters">
         {#each Array.from({ length: book.chapters }, (_, i) => i + 1) as c (c)}
@@ -55,16 +59,16 @@
       </div>
     {:else}
       <div class="head">
-        <input type="search" placeholder="Filter books…" bind:value={filter} aria-label="Filter books" />
-        <button class="btn btn-icon" aria-label="Close" onclick={() => dialog.close()}>✕</button>
+        <input type="search" placeholder={m.picker.filter} bind:value={filter} aria-label={m.picker.filter} />
+        <button class="btn btn-icon" aria-label={m.picker.close} onclick={() => dialog.close()}>✕</button>
       </div>
-      {#each [['OT', 'Old Testament'], ['NT', 'New Testament']] as [t, label] (t)}
+      {#each [['OT', m.books.ot], ['NT', m.books.nt]] as [t, label] (t)}
         {@const list = shown.filter((b) => b.testament === t)}
         {#if list.length}
           <h3 class="eyebrow">{label}</h3>
           <div class="books">
             {#each list as b (b.code)}
-              <button class:current={b === current} onclick={() => pick(b)}>{b.name}</button>
+              <button class:current={b === current} onclick={() => pick(b)}>{name(b)}</button>
             {/each}
           </div>
         {/if}

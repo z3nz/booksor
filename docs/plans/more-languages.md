@@ -1,7 +1,7 @@
 # Plan: more languages, past the 20,000-file limit
 
-Status: **in progress.** Steps 1–3 done, Spanish is live on `booksor-es` (2026-11-20). Pick up at [Steps](#steps),
-step 4: one clean Workers Builds deploy, then the checks by hand.
+Status: **in progress.** Steps 1–3 done, and Spanish is live on `booksor-es` through the normal push-to-deploy
+(2026-11-20). Pick up at [Steps](#steps), step 4's checks by hand, then step 5 (batch A).
 
 ## Where we are
 
@@ -146,14 +146,14 @@ Sources:
      `/rv1909/…` gave 404 for about 10 minutes. Fixed by removing the route in the dashboard (booksor.com
      domain → Workers Routes) and running `pnpm exec wrangler deploy --config dist-langs/es/wrangler.jsonc`
      by hand. If a route ever lands on the wrong Worker, that's where to fix it.
-   - **Still unknown:** whether the Workers Builds token may edit routes. That CI deploy failed on the route
-     clash before it got that far. The next push will show it; if it fails with a permission error, see the
-     token note above.
+   - **Confirmed (`fb13a69`):** the Workers Builds token can deploy `booksor-es` and its route. Both Workers
+     deployed in one build, and Spanish stayed up throughout.
+
 4. **Move Spanish to `booksor-es`.** 🟡 **Live on `booksor-es` since 2026-11-20** (deployed by hand, see
    step 3). Checked with curl: `/rv1909/john/3` (Spanish text, all scripts and styles load), with a query
    string, trailing-slash redirect, the Spanish Worker's 404 page, `/es`, English chapters, and the search,
-   verse-of-the-day, cross-reference and offline files. Still to do: one push through Workers Builds that
-   succeeds start to finish, then the checks by hand below.
+   verse-of-the-day, cross-reference and offline files. A full Workers Builds deploy (`fb13a69`) then
+   succeeded. Still to do: the checks by hand below (offline download, switching translations, a phone).
 
    Original step: Check
    `booksor.com/rv1909/john/3`, `/es`, offline download of RVR1909, search, cross-references and switching

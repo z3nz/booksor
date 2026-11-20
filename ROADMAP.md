@@ -33,7 +33,7 @@ A free, fast, beautiful Bible site at **booksor.com**.
 
 - [x] **M** Spanish: Reina-Valera 1909, Spanish book names and references ("Jn 3,16", "1 Co 13"), accent-insensitive search, menus in Spanish on Spanish pages (`src/i18n/`), a Spanish home page at /es, hreflang links between languages
 - [ ] **S** Native speaker review of the Spanish menus (`src/i18n/messages.ts`)
-- [ ] **M** More languages. First wave picked: Portuguese, French, German, Chinese (needs word segmentation for search), Russian, Arabic (right to left), Hindi, Korean, Indonesian, Vietnamese, Italian, Swahili, Tagalog. Each translation adds ~1,190 files
+- [ ] **M** More languages (full plan: `docs/plans/more-languages.md`). First wave picked: Portuguese, French, German, Chinese (needs word segmentation for search), Russian, Arabic (right to left), Hindi, Korean, Indonesian, Vietnamese, Italian, Swahili, Tagalog. Each translation adds ~1,190 files
 - [ ] **M** Past ~10 more translations we hit the 20k-file limit per Worker. Plan (chosen): split translations across extra static-only Workers routed by path on booksor.com, each with its own 20k files; stays free with no request cap. (On-demand rendering was the alternative, but the free plan caps Workers at 100k requests/day)
 - [ ] **M** "Hard times" topics in other languages (39 topic pages are English only for now)
 - [x] **M** "I'm struggling with…" situation search: 39 curated situations (`data/situations.json`) with topic pages, a `/help` hub, search cards, and crisis resources for sensitive topics

@@ -8,6 +8,7 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { setTimeout as sleep } from 'node:timers/promises';
 import { keepPreviousAssets } from './keep-previous-assets.ts';
 import { readMainConfig, splitDist } from './split-dist.ts';
 
@@ -45,7 +46,28 @@ if (WRANGLER_CI_OVERRIDE_NAME && WRANGLER_CI_OVERRIDE_NAME !== mainName) {
 
 console.log(`\n→ ${mainName} (${mainFiles.toLocaleString()} files)`);
 wrangler([]);
+
+// A brand-new Worker can fail straight after its upload: wrangler's next request (its settings) gets "This Worker
+// does not exist" [10007] for a few seconds while Cloudflare catches up (booksor-pt, 2026-11-20). Deploying again
+// works, so each language gets a few tries; one that still fails doesn't stop the others.
+const failed: string[] = [];
 for (const w of workers) {
   console.log(`\n→ ${w.name} (${w.files.toLocaleString()} files): ${w.ids.map((id) => `/${id}`).join(' ')}`);
-  wrangler(['--config', join(w.dir, 'wrangler.jsonc')], langEnv);
+  for (let attempt = 1; ; attempt++) {
+    try {
+      wrangler(['--config', join(w.dir, 'wrangler.jsonc')], langEnv);
+      break;
+    } catch {
+      if (attempt === 3) {
+        failed.push(w.name);
+        break;
+      }
+      console.warn(`  ! ${w.name} failed, trying again in ${attempt * 10}s`);
+      await sleep(attempt * 10_000);
+    }
+  }
+}
+if (failed.length) {
+  console.error(`\n✘ not deployed: ${failed.join(', ')}`);
+  process.exit(1);
 }

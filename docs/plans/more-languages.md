@@ -1,7 +1,7 @@
 # Plan: more languages, past the 20,000-file limit
 
 Status: **in progress.** Steps 1–4 done, Spanish is live on `booksor-es` (2026-11-20). Batch A (Portuguese,
-French, German, Italian) is built and tested (2026-11-20); next is its deploy and checks by hand, then batch B.
+French, German, Italian) is live (2026-11-20); next are its checks by hand, then batch B.
 
 ## Where we are
 
@@ -159,9 +159,9 @@ Sources:
    `booksor.com/rv1909/john/3`, `/es`, offline download of RVR1909, search, cross-references and switching
    translations, on a phone too.
 5. **Add languages in batches**, following the checklist below. Commit and deploy after each batch.
-   - **Batch A** 🟡 built and tested 2026-11-20: `blivre` (pt), `sblm` (fr), `luther1912` (de), `riveduta` (it),
+   - **Batch A** ✅ live 2026-11-20: `blivre` (pt), `sblm` (fr), `luther1912` (de), `riveduta` (it),
      each in its own Worker (`booksor-pt`…, 1,191 files each; main Worker 4,971). See [Batch A notes](#batch-a-notes).
-     Still to do: deploy, then the checks by hand.
+     Still to do: the checks by hand.
 
 ## First wave: languages and translations
 
@@ -256,6 +256,10 @@ What adding a language touches (updated after batch A):
 - **German:** references are shown as "Johannes 3:16"; German usually writes "3,16" (typing it works).
 - **Text fixes in `build-db.ts`:** Luther's bracketed other verse numbers are removed, and spaces before `,`,
   `.` and `;` (Bíblia Livre, 653 verses; one in the BSB) are removed. French keeps its space before `;`.
+- **Deploy:** the first build failed after uploading `booksor-pt`, the first Worker CI had to create: wrangler's
+  next request got "This Worker does not exist" [10007] while Cloudflare was still registering it. Deploying
+  again works, so `deploy-all.ts` now gives each language Worker 3 tries (da2c2ff), and the second build created
+  `booksor-fr`, `-de` and `-it` and deployed every Worker. New Workers need no setup by hand.
 - Menus in French and Italian say "Focus" for focus mode, since "Concentration" was too long for the toolbar.
 
 ## Still to settle

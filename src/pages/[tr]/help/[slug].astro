@@ -3,6 +3,7 @@ import type { GetStaticPaths } from 'astro';
 import Base from '../../../layouts/Base.astro';
 import CareNote from '../../../components/CareNote.svelte';
 import { BOOKS, chapterUrl } from '../../../lib/books.ts';
+import { iconSvg } from '../../../lib/icons.ts';
 import { getVerses } from '../../../lib/db.ts';
 import { formatReference, parseReference } from '../../../lib/reference.ts';
 import { GROUPS, helpUrl, SITUATIONS, type Situation } from '../../../lib/situations.ts';
@@ -31,10 +32,17 @@ const passages = s.verses.map((input) => {
   const verses = getVerses(t.id, BOOKS.indexOf(ref.book), ref.chapter, ref.verse, ref.endVerse ?? ref.verse);
   if (!verses.length) throw new Error(`${input} is missing from ${t.abbr} (situation "${s.slug}")`);
   return {
+    /** Same key as bookmarks made in the chapter, so they show up in both places */
+    b: BOOKS.indexOf(ref.book),
+    c: ref.chapter,
+    from: verses[0].v,
+    to: verses[verses.length - 1].v,
     label: formatReference(ref),
     url: chapterUrl(t.id, ref.book, ref.chapter, ref.verse, ref.endVerse),
     verses,
     multi: verses.length > 1,
+    /** Plain text for copying, sharing and the verse image */
+    text: plainText(verses.map((v) => v.t).join(' '), t.suppliedWords),
   };
 });
 
@@ -62,7 +70,16 @@ const description = `${s.intro} ${passages.length} Bible verses (${t.abbr}), sta
     <ol class="passages">
       {
         passages.map((p) => (
-          <li class="passage card">
+          <li
+            class="passage card"
+            data-text={p.text}
+            data-ref={`${p.label} (${t.abbr})`}
+            data-url={p.url}
+            data-b={p.b}
+            data-c={p.c}
+            data-from={p.from}
+            data-to={p.to}
+          >
             <blockquote class="reading" lang={t.language} dir={t.dir}>
               {p.verses.map((v) => (
                 <>
@@ -72,12 +89,28 @@ const description = `${s.intro} ${passages.length} Bible verses (${t.abbr}), sta
               ))}
             </blockquote>
             <div class="passage-foot">
-              <a class="ref" href={p.url}>
-                {p.label}
-              </a>
-              <a class="context" href={p.url}>
-                Read in context →
-              </a>
+              <div class="where">
+                <a class="ref" href={p.url}>
+                  {p.label}
+                </a>
+                <a class="context" href={p.url}>
+                  Read in context →
+                </a>
+              </div>
+              <div class="actions" role="group" aria-label={`Save or share ${p.label}`}>
+                <button class="btn" data-passage-action="bookmark" aria-pressed="false">
+                  <Fragment set:html={iconSvg('bookmark', 15)} /><span>Bookmark</span>
+                </button>
+                <button class="btn" data-passage-action="copy">
+                  <Fragment set:html={iconSvg('copy', 15)} />Copy
+                </button>
+                <button class="btn" data-passage-action="share">
+                  <Fragment set:html={iconSvg('share', 15)} />Share
+                </button>
+                <button class="btn" data-passage-action="image">
+                  <Fragment set:html={iconSvg('image', 15)} />Image
+                </button>
+              </div>
             </div>
           </li>
         ))
@@ -106,8 +139,85 @@ const description = `${s.intro} ${passages.length} Bible verses (${t.abbr}), sta
     </section>
 
     <p class="attribution">{t.attribution} <a href="/about">Licenses</a></p>
+    <span class="toast" role="status" data-passage-toast></span>
   </article>
 </Base>
+
+<script>
+  // Copy, share or make an image of a verse card, the same way as from a chapter's verse bar.
+  // One listener for every topic page (pages change without a full reload).
+  import { copyText, shareOrCopy, shareOrDownloadImage, verseImage } from '../../../lib/share.ts';
+  import { loadLibrary, onLibraryChange, passageKey, saveLibrary, updatePassage, type Library, type PassageRef } from '../../../lib/library.ts';
+
+  let hideToast = 0;
+  function flash(message: string) {
+    const toast = document.querySelector<HTMLElement>('[data-passage-toast]');
+    if (!toast) return;
+    toast.textContent = message;
+    toast.classList.add('show');
+    clearTimeout(hideToast);
+    hideToast = window.setTimeout(() => toast.classList.remove('show'), 2000);
+  }
+
+  const cardRef = (card: HTMLElement): PassageRef => ({
+    b: Number(card.dataset.b),
+    c: Number(card.dataset.c),
+    from: Number(card.dataset.from),
+    to: Number(card.dataset.to),
+  });
+
+  /** Show which cards are bookmarked (also after bookmarking in a chapter or another tab) */
+  function showBookmarks(lib: Library) {
+    for (const card of document.querySelectorAll<HTMLElement>('.passage[data-text]')) {
+      const button = card.querySelector<HTMLElement>('[data-passage-action="bookmark"]');
+      if (!button) continue;
+      const on = !!lib.passages[passageKey(cardRef(card))]?.bm;
+      button.setAttribute('aria-pressed', String(on));
+      button.querySelector('span')!.textContent = on ? 'Saved' : 'Bookmark';
+    }
+  }
+  document.addEventListener('astro:page-load', () => showBookmarks(loadLibrary()));
+  onLibraryChange(showBookmarks);
+
+  document.addEventListener('click', async (e) => {
+    const button = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-passage-action]');
+    const card = button?.closest<HTMLElement>('.passage[data-text]');
+    if (!button || !card) return;
+    const { text = '', ref = '', url = '' } = card.dataset;
+    const link = new URL(url, window.location.origin).href;
+    const quote = `“${text}” — ${ref}`;
+
+    if (button.dataset.passageAction === 'bookmark') {
+      const lib = loadLibrary();
+      const passage = cardRef(card);
+      const on = !lib.passages[passageKey(passage)]?.bm;
+      const tr = window.location.pathname.split('/')[1];
+      const next = updatePassage(lib, passage, { bm: on }, text, tr);
+      if (saveLibrary(next)) {
+        showBookmarks(next);
+        flash(on ? 'Bookmarked' : 'Bookmark removed');
+      } else {
+        flash('Couldn’t save on this device');
+      }
+    } else if (button.dataset.passageAction === 'copy') {
+      flash((await copyText(`${quote}\n${link}`)) ? 'Copied' : 'Couldn’t copy');
+    } else if (button.dataset.passageAction === 'share') {
+      const result = await shareOrCopy({ title: ref, text: quote, url: link });
+      if (result === 'copied') flash('Copied');
+      else if (result === 'failed') flash('Couldn’t share');
+    } else if (button.dataset.passageAction === 'image') {
+      button.disabled = true;
+      try {
+        const blob = await verseImage({ text, reference: ref });
+        await shareOrDownloadImage(blob, `${ref.replace(/[^\w]+/g, '-').replace(/^-|-$/g, '')}.png`, ref);
+      } catch {
+        flash('Couldn’t make the image');
+      } finally {
+        button.disabled = false;
+      }
+    }
+  });
+</script>
 
 <style>
   .situation {
@@ -169,17 +279,61 @@ const description = `${s.intro} ${passages.length} Bible verses (${t.abbr}), sta
     display: flex;
     flex-wrap: wrap;
     justify-content: space-between;
-    align-items: baseline;
-    gap: 4px 12px;
-    margin-top: 10px;
+    align-items: center;
+    gap: 8px 12px;
+    margin-top: 12px;
     font-size: 14px;
+  }
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .actions .btn {
+    min-height: 32px;
+    padding: 0 11px;
+    gap: 5px;
+    font-size: 13px;
+  }
+  .actions .btn:disabled {
+    opacity: 0.5;
+  }
+  .actions .btn[aria-pressed='true'] {
+    color: var(--accent);
+    border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+  }
+  .actions .btn[aria-pressed='true'] :global(svg) {
+    fill: currentColor;
+  }
+  /* Phones: four even buttons, icon above the label */
+  @media (max-width: 480px) {
+    .actions {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      width: 100%;
+    }
+    .actions .btn {
+      flex-direction: column;
+      gap: 2px;
+      min-height: 48px;
+      padding: 4px 0;
+      border-radius: 12px;
+      font-size: 12px;
+    }
   }
   .ref {
     font-weight: 600;
     text-decoration: none;
   }
+  .where {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 2px 12px;
+  }
   .context {
     color: var(--muted);
+    font-size: 13px;
     text-decoration: none;
   }
   .context:hover {
@@ -214,5 +368,24 @@ const description = `${s.intro} ${passages.length} Bible verses (${t.abbr}), sta
     margin-top: 32px;
     color: var(--muted);
     font-size: 13px;
+  }
+  .toast {
+    position: fixed;
+    left: 50%;
+    top: 76px;
+    z-index: 50;
+    transform: translateX(-50%);
+    padding: 6px 14px;
+    border-radius: 999px;
+    background: var(--text);
+    color: var(--bg);
+    font-size: 14px;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .toast:global(.show) {
+    opacity: 1;
   }
 </style>

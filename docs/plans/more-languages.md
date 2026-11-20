@@ -1,7 +1,7 @@
 # Plan: more languages, past the 20,000-file limit
 
-Status: **in progress.** Steps 1 and 2 done (2026-11-20). Pick up at [Steps](#steps), step 3 (the user, in
-the Cloudflare dashboard).
+Status: **in progress.** Steps 1–3 done, Spanish is live on `booksor-es` (2026-11-20). Pick up at [Steps](#steps),
+step 4: one clean Workers Builds deploy, then the checks by hand.
 
 ## Where we are
 
@@ -140,9 +140,22 @@ Sources:
      (`wrangler rollback bd525b80… --name booksor`). `deploy-all.ts` now removes that variable and
      `WRANGLER_CI_MATCH_TAG` for language deploys. A local dry run can only catch this with the variable set:
      `WRANGLER_CI_OVERRIDE_NAME=booksor pnpm run deploy:all --dry-run`.
-   - That deploy probably also gave the main Worker a `booksor.com/rv1909*` route. The next main deploy
-     replaces its routes with the ones in `wrangler.jsonc`, before `booksor-es` claims that route.
-4. **Move Spanish to `booksor-es`.** It proves the setup with a language that's already live. Check
+   - That deploy also gave the main Worker a `booksor.com/rv1909*` route, and **the main deploy doesn't remove
+     it** (the main Worker only has a custom domain, so wrangler leaves zone routes alone). The second CI
+     deploy (`225eba4`) then failed: "Can't deploy routes that are assigned to another worker", and
+     `/rv1909/…` gave 404 for about 10 minutes. Fixed by removing the route in the dashboard (booksor.com
+     domain → Workers Routes) and running `pnpm exec wrangler deploy --config dist-langs/es/wrangler.jsonc`
+     by hand. If a route ever lands on the wrong Worker, that's where to fix it.
+   - **Still unknown:** whether the Workers Builds token may edit routes. That CI deploy failed on the route
+     clash before it got that far. The next push will show it; if it fails with a permission error, see the
+     token note above.
+4. **Move Spanish to `booksor-es`.** 🟡 **Live on `booksor-es` since 2026-11-20** (deployed by hand, see
+   step 3). Checked with curl: `/rv1909/john/3` (Spanish text, all scripts and styles load), with a query
+   string, trailing-slash redirect, the Spanish Worker's 404 page, `/es`, English chapters, and the search,
+   verse-of-the-day, cross-reference and offline files. Still to do: one push through Workers Builds that
+   succeeds start to finish, then the checks by hand below.
+
+   Original step: Check
    `booksor.com/rv1909/john/3`, `/es`, offline download of RVR1909, search, cross-references and switching
    translations, on a phone too.
 5. **Add languages in batches**, following the checklist below. Commit and deploy after each batch.

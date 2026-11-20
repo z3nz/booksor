@@ -13,6 +13,7 @@ export const ZONE = 'booksor.com';
 
 type Translation = { id: string; language: string };
 type MainConfig = {
+  name: string;
   compatibility_date: string;
   assets: { html_handling?: string; not_found_handling?: string };
 };

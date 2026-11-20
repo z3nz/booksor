@@ -31,11 +31,21 @@ const { mainFiles, workers } = splitDist({
   main: readMainConfig(join(root, 'wrangler.jsonc')),
 });
 
-const wrangler = (extra: string[]) => execFileSync('pnpm', ['exec', 'wrangler', 'deploy', ...extra, ...args], { cwd: root, stdio: 'inherit' });
+const wrangler = (extra: string[], env = process.env) =>
+  execFileSync('pnpm', ['exec', 'wrangler', 'deploy', ...extra, ...args], { cwd: root, stdio: 'inherit', env });
 
-console.log(`\n→ booksor (${mainFiles.toLocaleString()} files)`);
+// Workers Builds sets WRANGLER_CI_OVERRIDE_NAME=booksor (and a matching tag), which makes *every* wrangler deploy
+// in the build go to the main Worker, whatever its config says. Keep them for the main Worker only; otherwise
+// each language Worker's files would replace the whole site (this happened on 2026-11-20).
+const { WRANGLER_CI_OVERRIDE_NAME, WRANGLER_CI_MATCH_TAG, ...langEnv } = process.env;
+const mainName = readMainConfig(join(root, 'wrangler.jsonc')).name;
+if (WRANGLER_CI_OVERRIDE_NAME && WRANGLER_CI_OVERRIDE_NAME !== mainName) {
+  throw new Error(`Workers Builds expects Worker "${WRANGLER_CI_OVERRIDE_NAME}", but wrangler.jsonc says "${mainName}"`);
+}
+
+console.log(`\n→ ${mainName} (${mainFiles.toLocaleString()} files)`);
 wrangler([]);
 for (const w of workers) {
   console.log(`\n→ ${w.name} (${w.files.toLocaleString()} files): ${w.ids.map((id) => `/${id}`).join(' ')}`);
-  wrangler(['--config', join(w.dir, 'wrangler.jsonc')]);
+  wrangler(['--config', join(w.dir, 'wrangler.jsonc')], langEnv);
 }

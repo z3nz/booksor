@@ -134,6 +134,14 @@ Sources:
    Scripts: Edit** (account) and **Workers Routes: Edit** (zone booksor.com): see above.
    - Spanish may 404 for a few seconds on that first deploy, between the main Worker dropping it and
      `booksor-es` going live. That only happens once.
+   - ⚠️ **First try (commit `02291af`, 2026-11-20) took the site down for a few minutes.** Workers Builds sets
+     `WRANGLER_CI_OVERRIDE_NAME=booksor`, which sends *every* `wrangler deploy` in the build to the main
+     Worker. So the Spanish deploy replaced the whole site with only `/rv1909` pages. Fixed by rolling back
+     (`wrangler rollback bd525b80… --name booksor`). `deploy-all.ts` now removes that variable and
+     `WRANGLER_CI_MATCH_TAG` for language deploys. A local dry run can only catch this with the variable set:
+     `WRANGLER_CI_OVERRIDE_NAME=booksor pnpm run deploy:all --dry-run`.
+   - That deploy probably also gave the main Worker a `booksor.com/rv1909*` route. The next main deploy
+     replaces its routes with the ones in `wrangler.jsonc`, before `booksor-es` claims that route.
 4. **Move Spanish to `booksor-es`.** It proves the setup with a language that's already live. Check
    `booksor.com/rv1909/john/3`, `/es`, offline download of RVR1909, search, cross-references and switching
    translations, on a phone too.

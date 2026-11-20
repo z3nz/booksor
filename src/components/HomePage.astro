@@ -1,5 +1,5 @@
 ---
-// The home page, one per menu language (/ and /es)
+// The home page, one per menu language (/, /es, /pt…)
 import Base from '../layouts/Base.astro';
 import SearchBox from './SearchBox.svelte';
 import VerseOfTheDay from './VerseOfTheDay.svelte';
@@ -31,7 +31,7 @@ const testaments = [
 ] as const;
 // Links point at the language's main translation; the script below swaps in the reader's saved one.
 const href = (slug: string, chapter = 1) => chapterUrl(translation, bookBySlug.get(slug)!, chapter);
-const other = UI_LANGS.find((l) => l !== lang)!;
+const others = UI_LANGS.filter((l) => l !== lang);
 ---
 
 <Base
@@ -42,7 +42,13 @@ const other = UI_LANGS.find((l) => l !== lang)!;
   alternates={[...UI_LANGS.map((l) => [l, homeUrl(l)] as [string, string]), ['x-default', '/']]}
 >
   <section class="hero container">
-    <a class="lang-hint" href={homeUrl(other)} lang={other} hreflang={other} data-lang-hint={other} hidden>{m.home.otherLanguage} →</a>
+    {
+      others.map((l) => (
+        <a class="lang-hint" href={homeUrl(l)} lang={l} hreflang={l} data-lang-hint={l} hidden>
+          {messages(l).home.readHere} →
+        </a>
+      ))
+    }
     <h1>{m.home.heading1}<br /><em>{m.home.heading2}</em></h1>
     <p class="lead">{m.home.lead}</p>
     <div class="hero-search">
@@ -116,12 +122,11 @@ const other = UI_LANGS.find((l) => l !== lang)!;
       resume.textContent = (resume.dataset.label ?? '{place}').replace('{place}', place);
       resume.hidden = false;
     }
-    // Someone whose browser prefers the other language: offer it
-    const hint = document.querySelector<HTMLAnchorElement>('a[data-lang-hint]');
-    if (hint) {
-      const wanted = hint.dataset.langHint!;
-      hint.hidden = !navigator.languages.some((l) => l.toLowerCase().startsWith(wanted));
-    }
+    // Offer the language the browser prefers most, of the ones we have, if it isn't this page's
+    const hints = [...document.querySelectorAll<HTMLAnchorElement>('a[data-lang-hint]')];
+    const ours = [pageLang(), ...hints.map((a) => a.dataset.langHint!)];
+    const preferred = navigator.languages.map((l) => l.toLowerCase().split('-')[0]).find((l) => ours.includes(l));
+    for (const a of hints) a.hidden = a.dataset.langHint !== preferred;
   });
 </script>
 

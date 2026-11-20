@@ -1,6 +1,10 @@
 ---
 import Base from '../layouts/Base.astro';
+import { homeUrl, LANGUAGE_NAMES, messages, UI_LANGS } from '../i18n/index.ts';
 import { TRANSLATIONS } from '../lib/translations.ts';
+
+const supplied = TRANSLATIONS.filter((t) => t.suppliedWords).map((t) => t.abbr);
+const otherLangs = UI_LANGS.filter((l) => l !== 'en');
 ---
 
 <Base title="About & licenses – Booksor" description="About Booksor, a free Bible website, and the licenses of the translations it uses.">
@@ -31,7 +35,7 @@ import { TRANSLATIONS } from '../lib/translations.ts';
       }
     </ul>
     <p>
-      Texts come from <a href="https://ebible.org/" rel="noopener">eBible.org</a>. In the King James Version, words the
+      Texts come from <a href="https://ebible.org/" rel="noopener">eBible.org</a>. In {supplied.join(', ')}, words the
       translators added for readability are shown in <em>italics</em>.
     </p>
 
@@ -54,8 +58,15 @@ import { TRANSLATIONS } from '../lib/translations.ts';
 
     <h2>Coming next</h2>
     <p>
-      More languages (Spanish is here: <a href="/es" lang="es">Leer en español</a>), more translations, and a
-      book-style reading view with page turns.
+      More languages and translations, and a book-style reading view with page turns. Booksor is already in{' '}
+      {
+        otherLangs.map((l, i) => (
+          <>
+            <a href={homeUrl(l)} lang={l} hreflang={l} title={messages(l).home.readHere}>{LANGUAGE_NAMES[l]}</a>
+            {i < otherLangs.length - 2 ? ', ' : i === otherLangs.length - 2 ? ' and ' : '.'}
+          </>
+        ))
+      }
     </p>
   </div>
 </Base>

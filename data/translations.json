@@ -48,5 +48,54 @@
     "license": "Dominio público",
     "attribution": "Santa Biblia, Reina-Valera 1909, dominio público. Texto de eBible.org.",
     "suppliedWords": true
+  },
+  {
+    "id": "blivre",
+    "abbr": "BLIVRE",
+    "name": "Bíblia Livre",
+    "language": "pt",
+    "languageName": "Português",
+    "dir": "ltr",
+    "source": "porbr2018",
+    "sourceUrl": "https://ebible.org/Scriptures/porbr2018_vpl.zip",
+    "license": "CC BY 4.0",
+    "attribution": "Bíblia Livre (BLIVRE), Copyright © Diego Santos, Mario Sérgio e Marco Teles, 2018. Licença Creative Commons Atribuição 4.0 (creativecommons.org/licenses/by/4.0). Texto de eBible.org.",
+    "suppliedWords": true
+  },
+  {
+    "id": "sblm",
+    "abbr": "SBLM",
+    "name": "Sainte Bible libre pour le monde",
+    "language": "fr",
+    "languageName": "Français",
+    "dir": "ltr",
+    "source": "frasbl",
+    "sourceUrl": "https://ebible.org/Scriptures/frasbl_vpl.zip",
+    "license": "Domaine public",
+    "attribution": "Sainte Bible libre pour le monde, domaine public. Traduction de David Williams et Michael Paul Johnson, en cours de relecture. Texte de eBible.org."
+  },
+  {
+    "id": "luther1912",
+    "abbr": "LUT1912",
+    "name": "Lutherbibel 1912",
+    "language": "de",
+    "languageName": "Deutsch",
+    "dir": "ltr",
+    "source": "deu1912",
+    "sourceUrl": "https://ebible.org/Scriptures/deu1912_vpl.zip",
+    "license": "Gemeinfrei",
+    "attribution": "Lutherbibel 1912, gemeinfrei. Text von eBible.org."
+  },
+  {
+    "id": "riveduta",
+    "abbr": "RIV",
+    "name": "Riveduta 1927",
+    "language": "it",
+    "languageName": "Italiano",
+    "dir": "ltr",
+    "source": "ita1927",
+    "sourceUrl": "https://ebible.org/Scriptures/ita1927_vpl.zip",
+    "license": "Pubblico dominio",
+    "attribution": "La Sacra Bibbia, versione Riveduta 1927 (Giovanni Luzzi), pubblico dominio. Testo di eBible.org."
   }
 ]

@@ -1,7 +1,7 @@
 # Plan: more languages, past the 20,000-file limit
 
-Status: **in progress.** Steps 1–3 done, and Spanish is live on `booksor-es` through the normal push-to-deploy
-(2026-11-20). Pick up at [Steps](#steps), step 4's checks by hand, then step 5 (batch A).
+Status: **in progress.** Steps 1–4 done, Spanish is live on `booksor-es` (2026-11-20). Batch A (Portuguese,
+French, German, Italian) is built and tested (2026-11-20); next is its deploy and checks by hand, then batch B.
 
 ## Where we are
 
@@ -149,16 +149,19 @@ Sources:
    - **Confirmed (`fb13a69`):** the Workers Builds token can deploy `booksor-es` and its route. Both Workers
      deployed in one build, and Spanish stayed up throughout.
 
-4. **Move Spanish to `booksor-es`.** 🟡 **Live on `booksor-es` since 2026-11-20** (deployed by hand, see
+4. **Move Spanish to `booksor-es`.** ✅ **Live on `booksor-es` since 2026-11-20** (deployed by hand, see
    step 3). Checked with curl: `/rv1909/john/3` (Spanish text, all scripts and styles load), with a query
    string, trailing-slash redirect, the Spanish Worker's 404 page, `/es`, English chapters, and the search,
    verse-of-the-day, cross-reference and offline files. A full Workers Builds deploy (`fb13a69`) then
-   succeeded. Still to do: the checks by hand below (offline download, switching translations, a phone).
+   succeeded, and the user checked offline download, switching translations and a phone by hand. ✅
 
    Original step: Check
    `booksor.com/rv1909/john/3`, `/es`, offline download of RVR1909, search, cross-references and switching
    translations, on a phone too.
 5. **Add languages in batches**, following the checklist below. Commit and deploy after each batch.
+   - **Batch A** 🟡 built and tested 2026-11-20: `blivre` (pt), `sblm` (fr), `luther1912` (de), `riveduta` (it),
+     each in its own Worker (`booksor-pt`…, 1,191 files each; main Worker 4,971). See [Batch A notes](#batch-a-notes).
+     Still to do: deploy, then the checks by hand.
 
 ## First wave: languages and translations
 
@@ -167,10 +170,10 @@ All complete Bibles from eBible.org that it marks as redistributable. **Check ea
 
 | Batch | Language | eBible ID | Translation | License |
 | --- | --- | --- | --- | --- |
-| A | Portuguese | `porbrbsl` or `porbr2018` | World Portuguese Bible (PD) or Bíblia Livre | PD / open license: compare quality first |
-| A | French | `fraLSG` | Louis Segond 1910 | Public domain |
-| A | German | `deu1912` | Luther 1912 | Public domain |
-| A | Italian | `ita1927` | Riveduta 1927 | Public domain |
+| A | Portuguese | `porbr2018` | Bíblia Livre (`blivre`) | CC BY 4.0 Brasil, credit on every page |
+| A | French | `frasbl` | Sainte Bible libre pour le monde (`sblm`) | Public domain (draft, being proofread) |
+| A | German | `deu1912` | Luther 1912 (`luther1912`) | Public domain |
+| A | Italian | `ita1927` | Riveduta 1927 (`riveduta`) | Public domain |
 | B | Russian | `russyn` | Synodal | Public domain (Cyrillic; the catalog wrongly says "Latin" script) |
 | B | Indonesian | `indayt` | Alkitab Yang Terbuka (AYT) | Open license (YLSA): check terms |
 | B | Vietnamese | `vie1934` | 1934 (catalog says 1923) | Public domain |
@@ -181,6 +184,11 @@ All complete Bibles from eBible.org that it marks as redistributable. **Check ea
 | C | Hindi | `hin2017` | Indian Revised Version | Open license (Bridge Connectivity Solutions): check terms |
 | C | Korean | `kor` | Korean Bible 1910 | Public domain (older Korean) |
 
+**Check each candidate's verse numbering against the BSB before choosing it** (compare the `BOOK c:v` keys of
+the `_vpl.txt` files; about 16 extra verses that the BSB leaves out are normal). Some well-known Bibles number
+the Old Testament differently (Hebrew style), which breaks cross-references, translation switching and even
+chapter counts, unless we write a renumbering table.
+
 Batch C needs extra work, so it comes last:
 - **Chinese:** no spaces between words, so search needs segmenting, e.g. indexing character pairs.
 - **Arabic:** right-to-left layout.
@@ -188,40 +196,44 @@ Batch C needs extra work, so it comes last:
 
 ## Checklist for each new language
 
-This is what adding Spanish actually touched (commit `cd7c252`):
+What adding a language touches (updated after batch A):
 
 1. **Translation**
    - `data/translations.json`: `id`, `abbr`, `name`, `language`, `languageName` (in that language), `dir`,
      `source`, `sourceUrl` (`https://ebible.org/Scriptures/{id}_vpl.zip`), `license`, `attribution`, and
      `suppliedWords: true` if added words are in [brackets].
-   - Run `pnpm data`, then check the text for quirks with a SQLite query: brackets, `¶` paragraph marks (none
-     means one verse per line), stray markup, and verse counts compared with BSB.
-2. **Book names:** add `{LANG}_BOOKS` to `src/i18n/books.ts`, with the name plus the abbreviations people type.
-   Then wire it into `src/i18n/index.ts`: the `UiLang` type, `UI_LANGS`, `LANGUAGE_NAMES`, `uiLang()`,
-   `NAMES` and `bookAliases()`.
-3. **Menus:** add the language's object to `src/i18n/messages.ts` (typed `Messages`, so a missing message fails
-   type checking). Ask a native speaker to review it.
-4. **References:** add ordinal words ("premier", "erste"…) to `NUMBER_WORDS` in `src/lib/reference.ts`.
-5. **Search words:** in `src/lib/terms.ts`, add `processTermFor(lang)` rules: stop words, accent folding where
-   people type without accents, and a light plural/stem rule. Chinese needs segmentation (see batch C).
-6. **Home page:** add `src/pages/{lang}/index.astro` (`<HomePage lang="xx" />`) and add `/{lang}` to `SHELL` in
-   `integrations/offline.mjs`.
-7. **Tests:** a `tests/{language}.test.ts` like `tests/spanish.test.ts`, covering:
-   - references in the language's style
-   - book name coverage
-   - search word rules
-   - the top hit for 4–5 famous verses in that translation's own wording (check the actual text first; the
-     1909 Spanish says "la caridad es sufrida", not the modern "el amor es sufrido")
-   - every message key present
-8. **Check by hand:** the home page, a chapter, search, the verse bar at phone width (long labels), read-aloud
+   - The translation `id` is its URL (`/blivre/john/3`) and its route (`booksor.com/blivre*`), so it must not be
+     the start of another top-level path or id (the split step checks).
+   - Run `pnpm data`, then check the text for quirks with a SQLite query: brackets (supplied words, or other
+     verse numbers like Luther's `[32:1]`, which `build-db.ts` now strips), `¶` paragraph marks (none means one
+     verse per line), stray markup, spaces before punctuation (`build-db.ts` fixes `,` and `.`), and verse
+     counts compared with BSB.
+2. **Language file:** `src/i18n/{lang}.ts` exporting `books` (each book's name plus the abbreviations people
+   type, in BOOKS order) and `messages` (typed `Messages`, so a missing message fails type checking). Copy an
+   existing one. Add it to `LANGS` in `src/i18n/index.ts`; everything else (`UiLang`, `UI_LANGS`, the footer,
+   the home page hint, the offline home pages) follows from that and `data/translations.json`.
+   - The search box example and the text-size preview quote the translation's own wording.
+   - Ask a native speaker to review it.
+3. **References:** add ordinal words ("premier", "erste"…) to `NUMBER_WORDS` in `src/lib/reference.ts`. Book
+   names are matched with accents first, so two names that differ only by an accent (Portuguese "Jó"/"Jo")
+   both work.
+4. **Search words:** in `src/lib/terms.ts`, add a `processTerm{Lang}` to `PROCESSORS`: stop words (including
+   elided forms like French "l", "qu"), accent folding, and a light plural/stem rule. Chinese needs
+   segmentation (see batch C).
+5. **Home page:** add `src/pages/{lang}/index.astro` (`<HomePage lang="xx" />`).
+6. **Tests:** add the language to `REFERENCES` and `FAMOUS` in `tests/languages.test.ts` (the top hit for 4–5
+   famous verses in that translation's own wording; check the actual text first, the 1909 Spanish says "la
+   caridad es sufrida", not the modern "el amor es sufrido"), plus a `search words` case. Every message key,
+   every book name and abbreviation, and the home page are checked for every language automatically.
+7. **Check by hand:** the home page, a chapter, search, the verse bar at phone width (long labels), read-aloud
    voice, cross-references, offline download, and switching to and from English.
 
 ### Things that need generalizing once there are more than two languages
 
-- **The home page language hint** (`HomePage.astro`) assumes exactly two languages ("the other one"). Change it
-  to suggest the browser's preferred language from `navigator.languages`, if we have it.
-- **The footer** lists every menu language. Past about 6, switch to a compact language menu or a `/languages`
-  page.
+- ✅ **The home page language hint** now offers the browser's most preferred language we have
+  (`navigator.languages`), unless it's the page's own.
+- **The footer** lists every menu language: 6 now, the most it should hold. Before batch B, switch to a compact
+  language menu or a `/languages` page.
 - **Fonts:** Literata and Inter cover Latin, Cyrillic, Greek and Vietnamese. Arabic, Devanagari, Chinese and
   Korean fall back to system fonts, which is fine to start with. Later, load a Noto font for that language only.
 - **Right to left (Arabic):**
@@ -231,10 +243,24 @@ This is what adding Spanish actually touched (commit `cd7c252`):
     focus mode.
 - **Topic pages** (`/help`) stay English. Translating the 39 topics is its own roadmap item.
 
+## Batch A notes
+
+- **Portuguese:** chose Bíblia Livre (Almeida-style, finished, numbering matches) over the World Portuguese
+  Bible, which is modern and public domain but marked as a draft under revision. Its CC BY 4.0 credit is in the
+  attribution shown on every chapter page.
+- **French:** Louis Segond 1910 numbers verses Hebrew-style in 24 books (Malachi has 3 chapters, about 60 psalms
+  count the heading as verse 1), and Darby is further off. Chose the Sainte Bible libre pour le monde, a light
+  modern update of Segond with English numbering (public domain, marked as a draft being proofread). Ostervald
+  was the other option: finished, but 7 places are numbered differently. Segond could come later with a
+  renumbering table.
+- **German:** references are shown as "Johannes 3:16"; German usually writes "3,16" (typing it works).
+- **Text fixes in `build-db.ts`:** Luther's bracketed other verse numbers are removed, and spaces before `,`,
+  `.` and `;` (Bíblia Livre, 653 verses; one in the BSB) are removed. French keeps its space before `;`.
+- Menus in French and Italian say "Focus" for focus mode, since "Concentration" was too long for the toolbar.
+
 ## Still to settle
 
-- Portuguese: World Portuguese Bible (public domain, modern) or Bíblia Livre? Compare a few famous verses.
-- Spanish menus and book names: a native-speaker review is still pending (`src/i18n/messages.ts`,
-  `src/i18n/books.ts`).
+- Native-speaker review of menus and book names: Spanish (`src/i18n/es.ts`), Portuguese, French, German,
+  Italian.
 - Whether to also add a second translation for big languages (e.g. a modern Spanish one if an openly licensed
   one turns up).

@@ -51,10 +51,13 @@ export function processTerm(term: string): string | null {
   return stem(t);
 }
 
-// Spanish: accents don't matter when searching ("corazon" finds "corazón", and "a" matches the
-// 1909 spelling "á"), the commonest little words are skipped, and plurals match singulars.
-const ES_STOP_WORDS = new Set('a al de del el en la las lo los y e o u que se un una unos unas con por para su sus'.split(' '));
+// Other languages: accents don't matter when searching ("corazon" finds "corazón", and "a" matches the
+// 1909 Spanish spelling "á"), the commonest little words are skipped, and a light rule matches plurals and
+// other word endings. Like stem() above, each rule only has to be consistent, not linguistically perfect.
 const foldAccents = (s: string) => s.normalize('NFD').replace(/\p{M}/gu, '');
+const stopWords = (list: string) => new Set(list.split(' '));
+
+const ES_STOP_WORDS = stopWords('a al de del el en la las lo los y e o u que se un una unos unas con por para su sus');
 
 export function stemEs(word: string): string {
   let w = word;
@@ -69,8 +72,59 @@ export function processTermEs(term: string): string | null {
   return stemEs(t);
 }
 
+// Portuguese: "corações"/"coração" and "pães"/"pão" meet at "-ao"; then plural -s.
+const PT_STOP_WORDS = stopWords(
+  'a o as os ao aos à às de da do das dos e em no na nos nas um uma uns umas que se por pelo pela pelos pelas para com',
+);
+export function processTermPt(term: string): string | null {
+  const t = foldAccents(term.toLowerCase());
+  if (PT_STOP_WORDS.has(t)) return null;
+  let w = t;
+  if (w.length > 4) w = w.replace(/(oes|aes)$/, 'ao');
+  // "pastores"/"pastor", "luzes"/"luz": -es after r, z or s; otherwise a plain -s ("fontes"/"fonte")
+  if (w.length > 4) w = /[rzs]es$/.test(w) ? w.slice(0, -2) : w.replace(/s$/, '');
+  return w;
+}
+
+// French: elisions ("l'Éternel", "qu'il") split into a letter or two plus the word, so those are skipped;
+// plurals in -s and -x match the singular.
+const FR_STOP_WORDS = stopWords('l d j m n s t c qu le la les de des du un une et en au aux a à que qui se ce');
+export function processTermFr(term: string): string | null {
+  const t = foldAccents(term.toLowerCase());
+  if (FR_STOP_WORDS.has(t)) return null;
+  return t.length > 4 ? t.replace(/[sx]$/, '') : t;
+}
+
+// German: ß is written ss ("daß" in 1912, "dass" today), umlauts can be typed without the dots, and the
+// commonest endings come off ("Liebe", "lieben", "liebet" -> "lieb").
+const DE_STOP_WORDS = stopWords('der die das den dem des ein eine einen einem einer eines und oder zu zum zur im in am an auf von mit');
+export function processTermDe(term: string): string | null {
+  const t = foldAccents(term.toLowerCase().replace(/ß/g, 'ss'));
+  if (DE_STOP_WORDS.has(t)) return null;
+  return t.length > 4 ? t.replace(/(en|er|es|em|et|e|n|s)$/, '') : t;
+}
+
+// Italian: elisions ("dell'uomo", "l'Eterno") are skipped like French; the final vowel comes off so singular and
+// plural meet ("cielo"/"cieli" -> "ciel", "parola"/"parole" -> "parol").
+const IT_STOP_WORDS = stopWords(
+  'l d un il lo la i gli le di a da in con su per tra fra e ed o del dello della dei degli delle al allo alla ai agli alle dal dalla nel nella nei che si uno una dell nell all dall sull',
+);
+export function processTermIt(term: string): string | null {
+  const t = foldAccents(term.toLowerCase());
+  if (IT_STOP_WORDS.has(t)) return null;
+  return t.length > 4 ? t.replace(/[aeio]$/, '') : t;
+}
+
+const PROCESSORS: Record<string, (term: string) => string | null> = {
+  es: processTermEs,
+  pt: processTermPt,
+  fr: processTermFr,
+  de: processTermDe,
+  it: processTermIt,
+};
+
 /** The word → index term function for a language */
-export const processTermFor = (lang: string = 'en') => (lang === 'es' ? processTermEs : processTerm);
+export const processTermFor = (lang: string = 'en') => PROCESSORS[lang] ?? processTerm;
 
 const WORD = /[\p{L}\p{N}]+/gu;
 export const words = (text: string) => text.match(WORD) ?? [];

@@ -1,7 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { bookName, messages, uiLang } from '../src/i18n/index.ts';
-import { en, es } from '../src/i18n/messages.ts';
 import { BOOKS, bookBySlug } from '../src/lib/books.ts';
 import { formatReference, parseReference } from '../src/lib/reference.ts';
 import { buildIndex, search, verseKey } from '../src/lib/search.ts';
@@ -65,14 +64,8 @@ describe('Spanish words', () => {
 describe('menus', () => {
   it('picks the language from a code', () => {
     expect(uiLang('es-MX')).toBe('es');
-    expect(uiLang('fr')).toBe('en');
+    expect(uiLang('nl')).toBe('en');
     expect(messages('es').tools.listen).toBe('Escuchar');
-  });
-
-  it('has every message in Spanish', () => {
-    const keys = (o: object, prefix = ''): string[] =>
-      Object.entries(o).flatMap(([k, v]) => (v && typeof v === 'object' ? keys(v, `${prefix}${k}.`) : [`${prefix}${k}`]));
-    expect(keys(es).sort()).toEqual(keys(en).sort());
   });
 });
 

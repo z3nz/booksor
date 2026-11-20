@@ -59,7 +59,13 @@ for (const t of translations) {
       continue;
     }
     const para = m[4].includes('¶');
-    const text = m[4].replace(/¶/g, '').replace(/\s+/g, ' ').trim();
+    const text = m[4]
+      .replace(/¶/g, '')
+      .replace(/\[\d+(?::\d+)?[ab]?\]/g, '') // other verse numbering, noted in the text (Luther 1912: "[32:1]", "[1b]")
+      .replace(/\s+/g, ' ')
+      // No space before a comma or full stop ("[fizer] ," in the Bíblia Livre). French keeps its space before ";".
+      .replace(t.language === 'fr' ? / ([,.])(?!\.)/g : / ([,.;])(?!\.)/g, '$1')
+      .trim();
     if (!text) continue; // verse omitted by this translation
     const chapter = Number(m[2]);
     insertVerse.run(t.id, book, chapter, Number(m[3]), text, para ? 1 : 0);

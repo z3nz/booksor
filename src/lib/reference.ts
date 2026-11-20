@@ -6,8 +6,13 @@ import type { Book, Reference } from './types.ts';
 export const fold = (s: string) => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
 const squash = (s: string) => fold(s).replace(/[^a-z0-9]/g, '');
 
+/** Lowercase, accents kept, only letters and digits: "1 Jó" → "1jó" */
+const tight = (s: string) => s.normalize('NFC').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+
 interface Names {
-  /** Every exact name and abbreviation -> book */
+  /** Every exact name and abbreviation, accents kept -> book. Checked first: Portuguese "Jó" is Job, "Jo" is John. */
+  accented: Map<string, Book>;
+  /** Every exact name and abbreviation, without accents -> book */
   aliases: Map<string, Book>;
   /** Full names, for prefixes ("gene" -> Genesis) */
   names: (readonly [string, Book])[];
@@ -16,32 +21,53 @@ const byLang = new Map<UiLang, Names>();
 function namesFor(lang: UiLang): Names {
   let n = byLang.get(lang);
   if (!n) {
+    const accented = new Map<string, Book>();
     const aliases = new Map<string, Book>();
-    for (const [alias, book] of bookAliases(lang)) if (!aliases.has(squash(alias))) aliases.set(squash(alias), book);
-    n = { aliases, names: BOOKS.map((b) => [squash(bookName(b, lang)), b] as const) };
+    for (const [alias, book] of bookAliases(lang)) {
+      if (!accented.has(tight(alias))) accented.set(tight(alias), book);
+      if (!aliases.has(squash(alias))) aliases.set(squash(alias), book);
+    }
+    n = { accented, aliases, names: BOOKS.map((b) => [squash(bookName(b, lang)), b] as const) };
     byLang.set(lang, n);
   }
   return n;
 }
 
+/** Ordinal words before a book name ("first john", "primera de corintios", "zweiter korinther"), without accents */
 const NUMBER_WORDS: Record<string, string> = {
-  first: '1', '1st': '1', i: '1', primero: '1', primera: '1', primer: '1',
-  second: '2', '2nd': '2', ii: '2', segundo: '2', segunda: '2',
-  third: '3', '3rd': '3', iii: '3', tercero: '3', tercera: '3', tercer: '3',
+  first: '1', '1st': '1', i: '1', second: '2', '2nd': '2', ii: '2', third: '3', '3rd': '3', iii: '3',
+  // Spanish, Portuguese
+  primero: '1', primera: '1', primer: '1', primeiro: '1', primeira: '1',
+  segundo: '2', segunda: '2', tercero: '3', tercera: '3', tercer: '3', terceiro: '3', terceira: '3',
+  // French
+  premier: '1', premiere: '1', deuxieme: '2', seconde: '2', troisieme: '3',
+  // German
+  erste: '1', erster: '1', ersten: '1', erstes: '1', zweite: '2', zweiter: '2', zweiten: '2', zweites: '2',
+  dritte: '3', dritter: '3', dritten: '3', drittes: '3',
+  // Italian
+  primo: '1', prima: '1', secondo: '2', seconda: '2', terzo: '3', terza: '3',
 };
+const ORDINAL = new RegExp(
+  `^(${Object.keys(NUMBER_WORDS).sort((a, b) => b.length - a.length).join('|')}) (?:(?:de|aux?|ai|agli|an die) )?(?=[a-z])`,
+);
 
 /**
- * Find a book from what the user typed ("1 cor", "jn", "song of songs", "phil"; in Spanish also
- * "Éxodo", "1 Co", "Hch"). Names in the page's language come first, then English.
+ * Find a book from what the user typed ("1 cor", "jn", "song of songs", "phil"; in other languages also
+ * "Éxodo", "1 Co", "Hch", "1. Mose", "Jó"). Names in the page's language come first, then English.
  */
 export function findBook(input: string, lang: string = 'en'): Book | null {
+  const langs: UiLang[] = uiLang(lang) === 'en' ? ['en'] : [uiLang(lang), 'en'];
+  const typed = tight(input);
+  for (const l of langs) {
+    const exact = namesFor(l).accented.get(typed);
+    if (exact) return exact;
+  }
   let s = fold(input).replace(/\./g, ' ').trim().replace(/\s+/g, ' ');
   // "first john", "ii cor", "1st peter", "primera de corintios" -> "1 john", "2 cor", "1 peter", "1 corintios"
-  const word = s.match(/^(first|second|third|1st|2nd|3rd|primero|primera|primer|segundo|segunda|tercero|tercera|tercer|iii|ii|i) (?:de )?(?=[a-z])/);
+  const word = s.match(ORDINAL);
   if (word) s = NUMBER_WORDS[word[1]] + ' ' + s.slice(word[0].length);
   const key = squash(s);
   if (!key) return null;
-  const langs: UiLang[] = uiLang(lang) === 'en' ? ['en'] : [uiLang(lang), 'en'];
   for (const l of langs) {
     const exact = namesFor(l).aliases.get(key);
     if (exact) return exact;
@@ -62,12 +88,14 @@ const TAIL = /^(\d+)(?::(\d+))?(?:-(\d+)(?::(\d+))?)?$/;
  * Handles: "jn 3:16", "john 3 16", "1 cor 13:4-7", "rom 8:38-9:1", "ps 23", "jude 5", "genesis".
  */
 export function parseReference(input: string, lang: string = 'en'): Reference | null {
-  const s = fold(input)
+  const s = input
+    .normalize('NFC')
+    .toLowerCase()
     .replace(/[–—]/g, '-')
     .trim()
     .replace(/[\s:.,-]+$/, ''); // forgive a half-typed "john 3:"
-  // Book part may start with a number ("1 cor"); then letters/spaces; then an optional numeric tail.
-  const m = s.match(/^((?:[1-3]\s*)?[a-z][a-z .]*?)\s*(\d[\d\s:.,-]*)?$/);
+  // Book part may start with a number ("1 cor", German "1. Mose"); then letters/spaces; then an optional numeric tail.
+  const m = s.match(/^((?:[1-5]\.?\s*)?\p{L}[\p{L} .]*?)\s*(\d[\d\s:.,-]*)?$/u); // 1-5: German "5. Mose"
   if (!m) return null;
   const book = findBook(m[1], lang);
   if (!book) return null;

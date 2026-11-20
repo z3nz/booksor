@@ -17,7 +17,9 @@ A free, fast Bible website: [booksor.com](https://booksor.com). See [ROADMAP.md]
 | `pnpm test` | Unit tests (references, search quality, situations, saved verses, read-aloud, offline) |
 | `pnpm check` | Type check |
 | `pnpm run ci:build` | Everything Cloudflare runs: data, tests, build |
-| `pnpm run deploy` | Build and publish to Cloudflare by hand (normally automatic, see below) |
+| `pnpm run deploy` | Build and publish every Worker to Cloudflare by hand (normally automatic, see below) |
+| `pnpm run deploy:all` | Publish an existing build: keeps the live site's scripts, splits languages out, deploys every Worker. Add `--dry-run` to check without publishing |
+| `pnpm run split` | Move non-English translations from `dist/` to `dist-langs/` (needs a fresh build; `pnpm preview` won't show them afterwards) |
 | `pnpm run deploy:www` | Publish the small Worker that redirects www.booksor.com to booksor.com |
 
 Run `pnpm data` once before `dev` or `build`. The downloads, the database and the exported files are generated, so they are not committed.
@@ -41,7 +43,7 @@ Run `pnpm data` once before `dev` or `build`. The downloads, the database and th
 Pushing to `main` deploys automatically. Cloudflare Workers Builds is connected to this GitHub repo and runs:
 
 - Build command: `pnpm run ci:build`, which downloads the texts, runs the tests (a failure stops the deploy) and builds the site
-- Deploy command: `pnpm exec wrangler deploy`
+- Deploy command: `pnpm run deploy:all`
 
-The site is static files on Cloudflare at **booksor.com** (see `wrangler.jsonc`). `www.booksor.com` is a separate tiny Worker in `workers/www-redirect/` that redirects to booksor.com. It rarely changes, so deploy it by hand with `pnpm run deploy:www`.
+The site is static files on Cloudflare at **booksor.com** (see `wrangler.jsonc`). Cloudflare's free plan allows 20,000 files per Worker, so each non-English language gets its own files-only Worker (`booksor-es`…) with a route per translation (`booksor.com/rv1909*`). `scripts/split-dist.ts` moves those pages into `dist-langs/{lang}/` and writes each Worker's config there; everything else (English, home pages, scripts, search and cross-reference data) stays in the main Worker. The main Worker deploys first and also keeps the live build's scripts (`scripts/keep-previous-assets.ts`), so pages from either build work while the language Workers catch up. Plan and test results: `docs/plans/more-languages.md`. `www.booksor.com` is a separate tiny Worker in `workers/www-redirect/` that redirects to booksor.com. It rarely changes, so deploy it by hand with `pnpm run deploy:www`.
 

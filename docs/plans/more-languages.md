@@ -1,7 +1,7 @@
 # Plan: more languages, past the 20,000-file limit
 
-Status: **planned, not started** (written 2026-11-19). Spanish is live; this covers everything after it.
-Pick up at [Steps](#steps), step 1.
+Status: **in progress.** Steps 1 and 2 done (2026-11-20). Pick up at [Steps](#steps), step 3 (the user, in
+the Cloudflare dashboard).
 
 ## Where we are
 
@@ -83,7 +83,21 @@ Sources:
 
 ## Steps
 
-1. **Test the route on the real domain (about 15 minutes, needs the user's OK; it touches the live zone).**
+1. **Test the route on the real domain.** ✅ **Done 2026-11-20: it works.** Results:
+   - A files-only Worker on a route serves its files with the **full path** (`/zz-route-test/a` found
+     `zz-route-test/a.html`), so language Workers keep the same folder layout as `dist/`.
+     Its own `404.html` answers missing pages; `/`, `/bsb/john/3` and `/_astro/…` stayed on the main Worker.
+   - **Use one pattern per translation, `booksor.com/{tr}*`.** An exact pattern (`booksor.com/{tr}`) does
+     **not** match with a query string (`/{tr}?q=1` fell through to the main Worker).
+   - Because `{tr}*` is a prefix match, it also catches `/{tr}x`. The split step must fail if a translation
+     id is the start of any other top-level path or translation id.
+   - Trailing-slash redirects (`/{tr}/a/` → `/{tr}/a`) and the response headers matched the main Worker.
+     Neither Worker answers range requests with 206 (both send the whole file), so nothing changes there;
+     the audio is on R2 anyway.
+   - A new route took under a minute to take effect.
+   - The test Worker and its route are deleted.
+
+   Original test plan:
    - Deploy a throwaway files-only Worker `booksor-route-test` holding `zz-route-test.html`,
      `zz-route-test/a.html` and a `404.html`, with route `booksor.com/zz-route-test*`.
    - Check:
@@ -94,7 +108,18 @@ Sources:
    - Delete the Worker and its route afterwards.
    - **If it fails:** stop and decide between Workers Paid ($5/month, no splitting needed) and building pages on
      request.
-2. **Build the split step and generated configs.**
+2. **Build the split step and generated configs.** ✅ **Done 2026-11-20.**
+   - `scripts/split-dist.ts` (`pnpm run split`), `scripts/keep-previous-assets.ts`, `scripts/deploy-all.ts`
+     (`pnpm run deploy:all`, `--dry-run` passes through to wrangler). Tests in `tests/split.test.ts`.
+   - Change from the plan: each language Worker's config is generated into `dist-langs/{lang}/wrangler.jsonc`
+     (files in `dist-langs/{lang}/site/`), not committed under `workers/`, so it can't drift from
+     `data/translations.json`.
+   - Dry run on the real build: main Worker 4,955 files, `booksor-es` 1,191 (1,189 chapters, the book list
+     and a 404 page).
+   - The limit counts files only. Wrangler's "Read N files" line also counts folders, but its upload list
+     skips them.
+
+   Original plan:
    - `scripts/split-dist.ts`, plus generated `workers/lang-{lang}/wrangler.jsonc`.
    - `package.json` scripts: `split`, `deploy:all`.
    - The "keep previous scripts" step that reads the live `sw.js`.
@@ -102,8 +127,13 @@ Sources:
      e.g. 19,000).
    - Tests for the split, e.g. no file in two places, and every translation in `data/translations.json` landing
      somewhere.
-3. **Update deploys** (the user, in the Cloudflare dashboard): the Workers Builds deploy command, plus the API
-   token if needed (see above).
+3. **Update deploys** (the user, in the Cloudflare dashboard): Workers & Pages → `booksor` → Settings →
+   Build → Deploy command: change `pnpm exec wrangler deploy` to `pnpm run deploy:all`. The next push to
+   `main` then creates `booksor-es` and moves Spanish (that's step 4). If the build log shows an
+   authentication or permission error for `booksor-es` or its route, the build token needs **Workers
+   Scripts: Edit** (account) and **Workers Routes: Edit** (zone booksor.com): see above.
+   - Spanish may 404 for a few seconds on that first deploy, between the main Worker dropping it and
+     `booksor-es` going live. That only happens once.
 4. **Move Spanish to `booksor-es`.** It proves the setup with a language that's already live. Check
    `booksor.com/rv1909/john/3`, `/es`, offline download of RVR1909, search, cross-references and switching
    translations, on a phone too.

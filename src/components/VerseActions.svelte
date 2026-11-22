@@ -229,7 +229,7 @@
     busy = true;
     try {
       const blob = await verseImage({ text: selectedText(), reference: `${reference} (${abbr})` });
-      await shareOrDownloadImage(blob, `${reference.replace(/[^\w]+/g, '-')}-${tr}.png`, reference);
+      await shareOrDownloadImage(blob, `${reference.replace(/[^\p{L}\p{M}\p{N}]+/gu, '-')}-${tr}.png`, reference);
     } finally {
       busy = false;
     }

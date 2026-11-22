@@ -2,12 +2,22 @@ import { bookAliases, bookName, uiLang, type UiLang } from '../i18n/index.ts';
 import { BOOKS } from './books.ts';
 import type { Book, Reference } from './types.ts';
 
-/** Lowercase, no accents: "Éxodo" → "exodo" */
+/** Lowercase, no accents: "Éxodo" → "exodo", "Ёсиф" → "есиф" */
 export const fold = (s: string) => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
-const squash = (s: string) => fold(s).replace(/[^a-z0-9]/g, '');
+/** Letters and digits only, in any script: "Sáng-thế Ký" → "sangtheky", "1 Коринфянам" → "1коринфянам" */
+const squash = (s: string) => fold(s).replace(/[^\p{L}\p{N}]/gu, '');
 
-/** Lowercase, accents kept, only letters and digits: "1 Jó" → "1jó" */
-const tight = (s: string) => s.normalize('NFC').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+/** Lowercase, accents kept, only letters, marks and digits: "1 Jó" → "1jó" */
+const tight = (s: string) => s.normalize('NFC').toLowerCase().replace(/[^\p{L}\p{M}\p{N}]/gu, '');
+
+/** Digits in other scripts as 0-9, so Arabic "٣:١٦" and Hindi "३:१६" read as 3:16 */
+const ZEROS = [0x660, 0x6f0, 0x966, 0xff10]; // Arabic-Indic, Persian, Devanagari, full-width
+export const asciiDigits = (s: string) =>
+  s.replace(/\p{Nd}/gu, (d) => {
+    const c = d.codePointAt(0)!;
+    const zero = ZEROS.find((z) => c >= z && c <= z + 9);
+    return zero === undefined ? d : String(c - zero);
+  });
 
 interface Names {
   /** Every exact name and abbreviation, accents kept -> book. Checked first: Portuguese "Jó" is Job, "Jo" is John. */
@@ -46,9 +56,12 @@ const NUMBER_WORDS: Record<string, string> = {
   dritte: '3', dritter: '3', dritten: '3', drittes: '3',
   // Italian
   primo: '1', prima: '1', secondo: '2', seconda: '2', terzo: '3', terza: '3',
+  // Tagalog ("Unang Corinto"), Indonesian ("Korintus pertama" is rare, but "pertama korintus" costs nothing)
+  unang: '1', ikalawang: '2', ikatlong: '3', pertama: '1', kedua: '2', ketiga: '3',
 };
 const ORDINAL = new RegExp(
-  `^(${Object.keys(NUMBER_WORDS).sort((a, b) => b.length - a.length).join('|')}) (?:(?:de|aux?|ai|agli|an die) )?(?=[a-z])`,
+  `^(${Object.keys(NUMBER_WORDS).sort((a, b) => b.length - a.length).join('|')}) (?:(?:de|aux?|ai|agli|an die) )?(?=\\p{L})`,
+  'u',
 );
 
 /**
@@ -88,14 +101,14 @@ const TAIL = /^(\d+)(?::(\d+))?(?:-(\d+)(?::(\d+))?)?$/;
  * Handles: "jn 3:16", "john 3 16", "1 cor 13:4-7", "rom 8:38-9:1", "ps 23", "jude 5", "genesis".
  */
 export function parseReference(input: string, lang: string = 'en'): Reference | null {
-  const s = input
-    .normalize('NFC')
+  const s = asciiDigits(input.normalize('NFKC')) // NFKC: full-width "３：１６" as "3:16"
     .toLowerCase()
     .replace(/[–—]/g, '-')
     .trim()
     .replace(/[\s:.,-]+$/, ''); // forgive a half-typed "john 3:"
-  // Book part may start with a number ("1 cor", German "1. Mose"); then letters/spaces; then an optional numeric tail.
-  const m = s.match(/^((?:[1-5]\.?\s*)?\p{L}[\p{L} .]*?)\s*(\d[\d\s:.,-]*)?$/u); // 1-5: German "5. Mose"
+  // Book part may start with a number ("1 cor", German "1. Mose"); then letters (with their marks, as in Hindi),
+  // spaces, dots and hyphens (Vietnamese "Sáng-thế Ký"); then an optional numeric tail.
+  const m = s.match(/^((?:[1-5]\.?\s*)?\p{L}[\p{L}\p{M} .'’-]*?)\s*(\d[\d\s:.,-]*)?$/u); // 1-5: German "5. Mose"
   if (!m) return null;
   const book = findBook(m[1], lang);
   if (!book) return null;

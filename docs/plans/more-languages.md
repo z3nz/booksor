@@ -1,7 +1,8 @@
 # Plan: more languages, past the 20,000-file limit
 
 Status: **in progress.** Steps 1–4 done, Spanish is live on `booksor-es` (2026-11-20). Batch A (Portuguese,
-French, German, Italian) is live (2026-11-20); next are its checks by hand, then batch B.
+French, German, Italian) is live (2026-11-20). Batch B (Russian, Indonesian, Vietnamese, Swahili, Tagalog) is
+built and tested (2026-11-22); next are its deploy and checks by hand, then batch C (Chinese, Arabic, Hindi).
 
 ## Where we are
 
@@ -162,6 +163,10 @@ Sources:
    - **Batch A** ✅ live 2026-11-20: `blivre` (pt), `sblm` (fr), `luther1912` (de), `riveduta` (it),
      each in its own Worker (`booksor-pt`…, 1,191 files each; main Worker 4,971). See [Batch A notes](#batch-a-notes).
      Still to do: the checks by hand.
+   - **Batch B** 🟡 built and tested 2026-11-22: `svoboda` (ru), `ayt` (id), `vi1934` (vi), `neno` (sw), `tlulb` (tl),
+     1,191 files each (main Worker 4,991). The footer now has a compact language menu. See
+     [Batch B notes](#batch-b-notes). Still to do: deploy, then the checks by hand.
+   - **Batch C**: Chinese, Arabic, Hindi. Korean is on hold (see the notes).
 
 ## First wave: languages and translations
 
@@ -174,15 +179,15 @@ All complete Bibles from eBible.org that it marks as redistributable. **Check ea
 | A | French | `frasbl` | Sainte Bible libre pour le monde (`sblm`) | Public domain (draft, being proofread) |
 | A | German | `deu1912` | Luther 1912 (`luther1912`) | Public domain |
 | A | Italian | `ita1927` | Riveduta 1927 (`riveduta`) | Public domain |
-| B | Russian | `russyn` | Synodal | Public domain (Cyrillic; the catalog wrongly says "Latin" script) |
-| B | Indonesian | `indayt` | Alkitab Yang Terbuka (AYT) | Open license (YLSA): check terms |
-| B | Vietnamese | `vie1934` | 1934 (catalog says 1923) | Public domain |
-| B | Swahili | `swhonen` | Kiswahili Contemporary Version (Biblica) | Open license (Biblica): check terms |
-| B | Tagalog | `tglulb` | Unlocked Literal Bible (Door43) | CC BY-SA: check terms |
+| B | Russian | `rusfb` | Библия свободы (`svoboda`) | Public domain (marked as a draft) |
+| B | Indonesian | `indayt` | Alkitab Yang Terbuka (`ayt`) | CC BY-NC-ND 4.0: **non-commercial only** |
+| B | Vietnamese | `vie1934` | Kinh Thánh 1934 (`vi1934`) | Public domain |
+| B | Swahili | `swhonen` | Biblica Toleo Wazi Neno (`neno`) | CC BY-SA 4.0 |
+| B | Tagalog | `tglulb` | Tagalog Unlocked Literal Bible (`tlulb`) | CC BY-SA 4.0 |
 | C | Chinese | `cmn-cu89s` | Chinese Union Version, Simplified | Public domain |
 | C | Arabic | `arb-vd` | Van Dyck | Public domain, **right to left** |
-| C | Hindi | `hin2017` | Indian Revised Version | Open license (Bridge Connectivity Solutions): check terms |
-| C | Korean | `kor` | Korean Bible 1910 | Public domain (older Korean) |
+| C | Hindi | `hin2017` | Indian Revised Version | CC BY-SA 4.0 |
+| ~~C~~ | Korean | `kor` | Korean Bible 1910 | On hold: eBible's copy is missing ~111 verses |
 
 **Check each candidate's verse numbering against the BSB before choosing it** (compare the `BOOK c:v` keys of
 the `_vpl.txt` files; about 16 extra verses that the BSB leaves out are normal). Some well-known Bibles number
@@ -232,8 +237,8 @@ What adding a language touches (updated after batch A):
 
 - ✅ **The home page language hint** now offers the browser's most preferred language we have
   (`navigator.languages`), unless it's the page's own.
-- **The footer** lists every menu language: 6 now, the most it should hold. Before batch B, switch to a compact
-  language menu or a `/languages` page.
+- ✅ **The footer** has a compact language menu (a `<details>` that opens upwards, no script needed) and lists only
+  the current language's translations; each language's home page links its own.
 - **Fonts:** Literata and Inter cover Latin, Cyrillic, Greek and Vietnamese. Arabic, Devanagari, Chinese and
   Korean fall back to system fonts, which is fine to start with. Later, load a Noto font for that language only.
 - **Right to left (Arabic):**
@@ -262,9 +267,42 @@ What adding a language touches (updated after batch A):
   `booksor-fr`, `-de` and `-it` and deployed every Worker. New Workers need no setup by hand.
 - Menus in French and Italian say "Focus" for focus mode, since "Concentration" was too long for the toolbar.
 
+## Batch B notes
+
+Verse numbering checked against the BSB for every candidate (2026-11-22):
+
+| Candidate | Differences from the BSB | Verdict |
+| --- | --- | --- |
+| `russyn` Synodal | ~1,600: Psalms numbered the Greek way (Psalm 23 is its 22:1) with titles as verse 1, and small shifts elsewhere | Later, with a renumbering table |
+| `rusfb` Freedom Bible | Only the usual extra verses; Romans 16:25–27 sit at 14:24–26 (as in the Synodal) | **Chosen** (user, 2026-11-22) |
+| `indayt`, `vie1934`, `swhonen`, `tglulb` | Only the usual extra verses (Tagalog lacks Numbers 14:37) | Chosen |
+| `cmn-cu89s` / `cmn-cu89t` Chinese Union | 72 verse numbers absent: the text joins those verses to the one before (Numbers 1:20–21), nothing missing | Fine for batch C |
+| `cmnswcb` World Chinese Bible | Draft; missing Mark 4:35–41 | No |
+| `arb-vd`, `hin2017` | Only the usual extra verses | Fine for batch C |
+| `kor` Korean 1910 | ~111 verses of text missing (all of 1 Peter 5, Psalm 118:10–29, Genesis 30:32–43…) | On hold (user, 2026-11-22) |
+
+- **Indonesian:** AYT is the only complete open Indonesian Bible on eBible. Its license is non-commercial
+  (CC BY-NC-ND; the AYT's own page says BY-NC-SA). Fine while booksor is free with no ads; it would have to come
+  down if the site ever made money. Its "(24-1)" notes (Hebrew verse numbers) are stripped by `build-db.ts`.
+- **Text fixes in `build-db.ts`:** "(24-1)" notes at the start of a verse (AYT, 1,196 verses), cross-references in
+  brackets with a chapter:verse (Hindi IRV, ~2,500 verses), `//` poetry breaks (Swahili), a stray `*` (Tagalog),
+  and a `[` left at the end of a verse moves to the start of the next (Swahili brackets round disputed verses).
+  The old translations' text is unchanged (compared verse by verse).
+- **Other scripts:** words now include combining marks (Hindi vowel signs, Arabic vowel marks), book names match
+  in any script, the reference parser accepts hyphens (Vietnamese "Sáng-thế Ký"), full-width and Arabic/Hindi
+  digits, and Tagalog/Indonesian ordinals ("unang corinto"). Share-image file names keep non-Latin letters.
+- **Book names:** Russian follows the Synodal names readers know (1–4 Царств for Samuel and Kings, with
+  "1 Самуила"/"1 Царей" as abbreviations). Vietnamese uses the 1934 hyphenated names with "1 Cô-rinh-tô"
+  (the older "I Cô-rinh-tô" works too).
+- **Search:** Russian has a light ending-stripper, Indonesian strips -nya/-lah/-kah/-pun, Vietnamese ignores tone
+  marks, Swahili and Tagalog only skip little words.
+- **Read-aloud:** Tagalog voices are labelled `fil-PH` and older Android calls Indonesian `in-ID`; voice matching
+  now accepts both.
+
 ## Still to settle
 
 - Native-speaker review of menus and book names: Spanish (`src/i18n/es.ts`), Portuguese, French, German,
-  Italian.
+  Italian, Russian, Indonesian, Vietnamese, Swahili, Tagalog.
+- A Synodal Russian with a Psalms renumbering table; a Korean text once a complete open one turns up.
 - Whether to also add a second translation for big languages (e.g. a modern Spanish one if an openly licensed
   one turns up).

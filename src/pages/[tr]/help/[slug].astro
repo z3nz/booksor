@@ -209,7 +209,7 @@ const description = `${s.intro} ${passages.length} Bible verses (${t.abbr}), sta
       button.disabled = true;
       try {
         const blob = await verseImage({ text, reference: ref });
-        await shareOrDownloadImage(blob, `${ref.replace(/[^\w]+/g, '-').replace(/^-|-$/g, '')}.png`, ref);
+        await shareOrDownloadImage(blob, `${ref.replace(/[^\p{L}\p{M}\p{N}]+/gu, '-').replace(/^-|-$/g, '')}.png`, ref);
       } catch {
         flash('Couldn’t make the image');
       } finally {

@@ -38,6 +38,11 @@ describe('every language', () => {
     expect(uiLang('fr-CA')).toBe('fr');
     expect(uiLang('de-AT')).toBe('de');
     expect(uiLang('it')).toBe('it');
+    expect(uiLang('ru-RU')).toBe('ru');
+    expect(uiLang('id')).toBe('id');
+    expect(uiLang('vi-VN')).toBe('vi');
+    expect(uiLang('sw-KE')).toBe('sw');
+    expect(uiLang('tl')).toBe('tl');
     expect(uiLang('nl-NL')).toBe('en');
     expect(uiLang(undefined)).toBe('en');
   });
@@ -93,6 +98,63 @@ const REFERENCES: Record<Exclude<UiLang, 'en' | 'es'>, [string, string][]> = {
     ['prima corinzi 13', '1 Corinzi 13'],
     ['At 2:38', 'Atti 2:38'],
     ['Ap 21', 'Apocalisse 21'],
+  ],
+  ru: [
+    ['ин 3:16', 'Иоанна 3:16'],
+    ['Иоанна 3,16', 'Иоанна 3:16'],
+    ['Быт 1', 'Бытие 1'],
+    ['пс 23', 'Псалтирь 23'],
+    ['1 Кор 13:4-7', '1 Коринфянам 13:4-7'],
+    ['3 царств 1', '3 Царств 1'],
+    ['1 самуила 1', '1 Царств 1'],
+    ['Деян 2:38', 'Деяния 2:38'],
+    ['откр 21', 'Откровение 21'],
+    ['иисус навин 1', 'Иисус Навин 1'],
+    ['песнь песней 2', 'Песнь песней 2'],
+  ],
+  id: [
+    ['Yoh 3:16', 'Yohanes 3:16'],
+    ['Kej 1', 'Kejadian 1'],
+    ['mzm 23', 'Mazmur 23'],
+    ['1 Kor 13:4-7', '1 Korintus 13:4-7'],
+    ['pertama korintus 13', '1 Korintus 13'],
+    ['Kis 2:38', 'Kisah Para Rasul 2:38'],
+    ['why 21', 'Wahyu 21'],
+    ['hakim-hakim 2', 'Hakim-hakim 2'],
+    ['1 raja-raja 3', '1 Raja-raja 3'],
+  ],
+  vi: [
+    ['Giăng 3:16', 'Giăng 3:16'],
+    ['giang 3:16', 'Giăng 3:16'],
+    ['Sáng-thế Ký 1', 'Sáng-thế Ký 1'],
+    ['sang the ky 1', 'Sáng-thế Ký 1'],
+    ['thi 23', 'Thi-thiên 23'],
+    ['1 Cô-rinh-tô 13:4-7', '1 Cô-rinh-tô 13:4-7'],
+    ['I Cô-rinh-tô 13', '1 Cô-rinh-tô 13'],
+    ['đa-ni-ên 6', 'Đa-ni-ên 6'],
+    ['khai 21', 'Khải-huyền 21'],
+    ['công-vụ 2:38', 'Công-vụ các Sứ-đồ 2:38'],
+  ],
+  sw: [
+    ['Yn 3:16', 'Yohana 3:16'],
+    ['yohana 3:16', 'Yohana 3:16'],
+    ['Mwa 1', 'Mwanzo 1'],
+    ['zab 23', 'Zaburi 23'],
+    ['1 Kor 13:4-7', '1 Wakorintho 13:4-7'],
+    ['Mdo 2:38', 'Matendo ya Mitume 2:38'],
+    ['ufu 21', 'Ufunuo 21'],
+    ['mambo ya walawi 1', 'Mambo ya Walawi 1'],
+  ],
+  tl: [
+    ['Juan 3:16', 'Juan 3:16'],
+    ['jn 3:16', 'Juan 3:16'],
+    ['Gen 1', 'Genesis 1'],
+    ['awit 23', 'Mga Awit 23'],
+    ['1 Cor 13:4-7', '1 Corinto 13:4-7'],
+    ['unang corinto 13', '1 Corinto 13'],
+    ['gawa 2:38', 'Mga Gawa 2:38'],
+    ['pahayag 21', 'Pahayag 21'],
+    ['awit ng mga awit 2', 'Awit ng mga Awit 2'],
   ],
 };
 
@@ -159,6 +221,34 @@ describe('search words', () => {
     skipped('it', 'il');
   });
 
+  it('Russian: ё, endings', () => {
+    same('ru', 'пастух', 'пастуха');
+    same('ru', 'пастухи', 'пастух');
+    same('ru', 'ёлка', 'елка');
+    same('ru', 'Господь', 'господь');
+    skipped('ru', 'и');
+    skipped('ru', 'в');
+  });
+
+  it('Indonesian: particles', () => {
+    same('id', 'kasihnya', 'kasih');
+    same('id', 'dialah', 'dia');
+    skipped('id', 'yang');
+  });
+
+  it('Vietnamese: tone marks and đ are optional', () => {
+    same('vi', 'thương', 'thuong');
+    same('vi', 'Đức', 'duc');
+    skipped('vi', 'và');
+  });
+
+  it('Swahili and Tagalog: little words', () => {
+    same('sw', 'Mungu', 'mungu');
+    skipped('sw', 'na');
+    skipped('tl', 'ang');
+    skipped('tl', 'mga');
+  });
+
   it('highlights with the original spelling kept', () => {
     expect(highlight('Der HERR ist mein Hirte', ['hirt'], 'de')).toBe('Der HERR ist mein <mark>Hirte</mark>');
     expect(highlight('Car Dieu a tant aimé le monde', ['aime'], 'fr')).toBe('Car Dieu a tant <mark>aimé</mark> le monde');
@@ -194,6 +284,41 @@ const FAMOUS: Record<Exclude<UiLang, 'en' | 'es'>, [string, string][]> = {
     ['io posso ogni cosa in Colui che mi fortifica', 'Filippesi 4:13'],
     ['venite a me voi tutti che siete travagliati', 'Matteo 11:28'],
     ['la carità è paziente, è benigna', '1 Corinzi 13:4'],
+  ],
+  ru: [
+    ['Господь — мой пастух', 'Псалтирь 23:1'],
+    ['Бог так полюбил мир', 'Иоанна 3:16'],
+    ['я могу всё благодаря Христу', 'Филиппийцам 4:13'],
+    ['придите ко Мне все, кто трудится и изнемогает', 'Матфея 11:28'],
+    ['любовь терпелива', '1 Коринфянам 13:4'],
+  ],
+  id: [
+    ['TUHAN adalah gembalaku', 'Mazmur 23:1'],
+    ['Allah sangat mengasihi dunia ini', 'Yohanes 3:16'],
+    ['aku dapat melakukan segala sesuatu', 'Filipi 4:13'],
+    ['datanglah kepada-Ku semua yang letih lesu', 'Matius 11:28'],
+    ['kasih itu bersabar', '1 Korintus 13:4'],
+  ],
+  vi: [
+    ['Đức Giê-hô-va là Đấng chăn giữ tôi', 'Thi-thiên 23:1'],
+    ['Đức Chúa Trời yêu thương thế gian', 'Giăng 3:16'],
+    ['tôi làm được mọi sự nhờ Đấng ban thêm sức', 'Phi-líp 4:13'],
+    ['hỡi những kẻ mệt mỏi và gánh nặng', 'Ma-thi-ơ 11:28'],
+    ['tình yêu thương hay nhịn nhục', '1 Cô-rinh-tô 13:4'],
+  ],
+  sw: [
+    ['Bwana ndiye mchungaji wangu', 'Zaburi 23:1'],
+    ['Mungu aliupenda ulimwengu', 'Yohana 3:16'],
+    ['naweza kuyafanya mambo yote', 'Wafilipi 4:13'],
+    ['njooni kwangu ninyi nyote mnaotaabika', 'Mathayo 11:28'],
+    ['upendo huvumilia, upendo hufadhili', '1 Wakorintho 13:4'],
+  ],
+  tl: [
+    ['Si Yahweh ang aking pastol', 'Mga Awit 23:1'],
+    ['labis na inibig ng Diyos ang sangkatauhan', 'Juan 3:16'],
+    ['magagawa ko ang lahat ng mga bagay', 'Filipos 4:13'],
+    ['lumapit kayo sa akin kayong lahat na nahihirapan', 'Mateo 11:28'],
+    ['ang pag-ibig ay mapagpasensya', '1 Corinto 13:4'],
   ],
 };
 

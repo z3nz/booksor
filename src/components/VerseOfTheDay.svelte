@@ -62,7 +62,7 @@
   async function image() {
     if (!entry) return;
     const blob = await verseImage({ text: entry.text, reference: `${entry.ref} (${abbr})` });
-    await shareOrDownloadImage(blob, `${entry.ref.replace(/[^\w]+/g, '-')}-${tr}.png`, entry.ref);
+    await shareOrDownloadImage(blob, `${entry.ref.replace(/[^\p{L}\p{M}\p{N}]+/gu, '-')}-${tr}.png`, entry.ref);
   }
 </script>
 

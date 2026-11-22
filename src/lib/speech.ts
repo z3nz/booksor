@@ -50,6 +50,9 @@ export interface VoiceLike {
 
 const norm = (tag: string) => tag.toLowerCase().replace('_', '-');
 
+/** Other codes voices use for a language: Tagalog voices are "fil-PH", older Android calls Indonesian "in-ID" */
+const SAME_LANGUAGE: Record<string, string[]> = { tl: ['tl', 'fil'], id: ['id', 'in'], zh: ['zh', 'cmn'] };
+
 /**
  * Voices for a language, best first: natural-sounding ones, then the reader's own accent
  * (`locale`, e.g. en-US from the browser), then the system default, then local ones.
@@ -64,7 +67,7 @@ export function rankVoices<V extends VoiceLike>(voices: V[], lang: string, local
     (v.default ? 1 : 0) +
     (v.localService ? 0.5 : 0);
   return voices
-    .filter((v) => norm(v.lang).split('-')[0] === want)
+    .filter((v) => (SAME_LANGUAGE[want] ?? [want]).includes(norm(v.lang).split('-')[0]))
     .sort((a, b) => score(b) - score(a) || a.name.localeCompare(b.name));
 }
 

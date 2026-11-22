@@ -6,8 +6,13 @@ import * as de from './de.ts';
 import { messages as en, type BookNames, type Messages } from './en.ts';
 import * as es from './es.ts';
 import * as fr from './fr.ts';
+import * as id from './id.ts';
 import * as it from './it.ts';
 import * as pt from './pt.ts';
+import * as ru from './ru.ts';
+import * as sw from './sw.ts';
+import * as tl from './tl.ts';
+import * as vi from './vi.ts';
 
 const LANGS = {
   en: { name: 'English', messages: en, books: BOOKS.map((b) => [b.name, [b.slug, ...b.abbr]]) as BookNames },
@@ -16,6 +21,11 @@ const LANGS = {
   fr: { name: 'Français', ...fr },
   de: { name: 'Deutsch', ...de },
   it: { name: 'Italiano', ...it },
+  ru: { name: 'Русский', ...ru },
+  id: { name: 'Bahasa Indonesia', ...id },
+  vi: { name: 'Tiếng Việt', ...vi },
+  sw: { name: 'Kiswahili', ...sw },
+  tl: { name: 'Tagalog', ...tl },
 } satisfies Record<string, { name: string; messages: Messages; books: BookNames }>;
 
 export type UiLang = keyof typeof LANGS;

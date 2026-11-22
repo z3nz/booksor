@@ -32,10 +32,11 @@ A free, fast, beautiful Bible site at **booksor.com**.
 ## Phase 2 — Languages, situations, reading mode
 
 - [x] **M** Spanish: Reina-Valera 1909, Spanish book names and references ("Jn 3,16", "1 Co 13"), accent-insensitive search, menus in Spanish on Spanish pages (`src/i18n/`), a Spanish home page at /es, hreflang links between languages
-- [ ] **S** Native speaker review of the menus and book names: Spanish, Portuguese, French, German, Italian (`src/i18n/{lang}.ts`)
+- [ ] **S** Native speaker review of the menus and book names: Spanish, Portuguese, French, German, Italian, Russian, Indonesian, Vietnamese, Swahili, Tagalog (`src/i18n/{lang}.ts`)
 - [x] **M** Languages past the 20k-file limit: each language in its own files-only Worker (`scripts/split-dist.ts`)
 - [x] **M** Batch A: Portuguese (Bíblia Livre), French (Sainte Bible libre pour le monde), German (Luther 1912), Italian (Riveduta 1927)
-- [ ] **M** More languages (full plan: `docs/plans/more-languages.md`). First wave picked: Portuguese, French, German, Chinese (needs word segmentation for search), Russian, Arabic (right to left), Hindi, Korean, Indonesian, Vietnamese, Italian, Swahili, Tagalog. Each translation adds ~1,190 files
+- [x] **M** Batch B: Russian (Freedom Bible), Indonesian (AYT), Vietnamese (1934), Swahili (Neno), Tagalog (ULB), and a compact footer language menu
+- [ ] **M** More languages (full plan: `docs/plans/more-languages.md`). Batch C next: Chinese (needs word segmentation for search), Arabic (right to left), Hindi. Korean waits for a complete open text (the 1910 one is missing ~111 verses). The Russian Synodal could follow with a Psalms renumbering table. Each translation adds ~1,190 files
 - [ ] **M** Past ~10 more translations we hit the 20k-file limit per Worker. Plan (chosen): split translations across extra static-only Workers routed by path on booksor.com, each with its own 20k files; stays free with no request cap. (On-demand rendering was the alternative, but the free plan caps Workers at 100k requests/day)
 - [ ] **M** "Hard times" topics in other languages (39 topic pages are English only for now)
 - [x] **M** "I'm struggling with…" situation search: 39 curated situations (`data/situations.json`) with topic pages, a `/help` hub, search cards, and crisis resources for sensitive topics

@@ -115,18 +115,67 @@ export function processTermIt(term: string): string | null {
   return t.length > 4 ? t.replace(/[aeio]$/, '') : t;
 }
 
+// Russian: ё is written е, and the commonest case and verb endings come off ("пастух", "пастуха", "пастухи" ->
+// "пастух"). Much lighter than a real Russian stemmer, but the same rule runs on verses and queries.
+const RU_STOP_WORDS = stopWords('и в во на с со к ко о об от из у за по до не ни же а но да ли бы то что как');
+const RU_ENDING =
+  /(иями|ями|ами|ого|его|ому|ему|ыми|ими|ией|иях|ешь|ишь|ете|ите|ают|яют|ует|ила|ала|яла|или|али|ило|ах|ях|ам|ям|ой|ей|ою|ею|ом|ем|ую|юю|ая|яя|ое|ее|ые|ие|ый|ий|ов|ев|ет|ит|ут|ют|ат|ят|ил|ал|ть|ти|а|я|о|е|ы|и|у|ю|ь|й)$/;
+export function processTermRu(term: string): string | null {
+  const t = term.toLowerCase().replace(/ё/g, 'е');
+  if (RU_STOP_WORDS.has(t)) return null;
+  if (t.length <= 4) return t;
+  const s = t.replace(RU_ENDING, '');
+  return s.length >= 3 ? s : t;
+}
+
+// Indonesian: words don't inflect, but particles join the word ("kasih-Nya" splits at the hyphen; "kasihnya",
+// "dialah" don't), so -nya, -lah, -kah and -pun come off.
+const ID_STOP_WORDS = stopWords('yang dan di ke dari untuk dengan itu ini pada dalam adalah akan oleh atau juga');
+export function processTermId(term: string): string | null {
+  const t = term.toLowerCase();
+  if (ID_STOP_WORDS.has(t)) return null;
+  return t.length > 5 ? t.replace(/(nya|lah|kah|pun)$/, '') : t;
+}
+
+// Vietnamese: one syllable per word. Tone marks are optional when typing ("yeu thuong" finds "yêu thương"), and
+// đ is typed d. The exact-phrase bonus still puts the verse with the marks as typed first.
+const VI_STOP_WORDS = stopWords('va cua la thi ma cac nhung');
+export function processTermVi(term: string): string | null {
+  const t = foldAccents(term.toLowerCase()).replace(/đ/g, 'd');
+  return VI_STOP_WORDS.has(t) ? null : t;
+}
+
+// Swahili and Tagalog: lowercase, skip the commonest little words. Both build words from prefixes and infixes
+// that a light rule can't undo, so there's no stemming.
+const SW_STOP_WORDS = stopWords('na ya wa la za kwa katika ni cha vya kwamba');
+export function processTermSw(term: string): string | null {
+  const t = term.toLowerCase();
+  return SW_STOP_WORDS.has(t) ? null : t;
+}
+const TL_STOP_WORDS = stopWords('ang ng mga sa at na si ni ay kay');
+export function processTermTl(term: string): string | null {
+  const t = term.toLowerCase();
+  return TL_STOP_WORDS.has(t) ? null : t;
+}
+
 const PROCESSORS: Record<string, (term: string) => string | null> = {
   es: processTermEs,
   pt: processTermPt,
   fr: processTermFr,
   de: processTermDe,
   it: processTermIt,
+  ru: processTermRu,
+  id: processTermId,
+  vi: processTermVi,
+  sw: processTermSw,
+  tl: processTermTl,
 };
 
 /** The word → index term function for a language */
 export const processTermFor = (lang: string = 'en') => PROCESSORS[lang] ?? processTerm;
 
-const WORD = /[\p{L}\p{N}]+/gu;
+// Letters with their marks (Hindi vowel signs and Arabic vowel marks are marks, not letters) and digits
+const WORD = /[\p{L}\p{M}\p{N}]+/gu;
 export const words = (text: string) => text.match(WORD) ?? [];
 
 /** One search entry per verse: the distinct terms from every translation, as plain words. */
@@ -146,9 +195,9 @@ export function combineWords(texts: string[], lang: string = 'en'): string {
 export function highlight(text: string, terms: string[], lang: string = 'en'): string {
   const processTerm = processTermFor(lang);
   const set = new Set(terms);
-  return text.replace(/[\p{L}\p{N}]+|[^\p{L}\p{N}]+/gu, (chunk) => {
+  return text.replace(/[\p{L}\p{M}\p{N}]+|[^\p{L}\p{M}\p{N}]+/gu, (chunk) => {
     const html = escapeHtml(chunk);
-    if (!/^[\p{L}\p{N}]/u.test(chunk)) return html;
+    if (!/^[\p{L}\p{M}\p{N}]/u.test(chunk)) return html;
     const t = processTerm(chunk);
     return t && set.has(t) ? `<mark>${html}</mark>` : html;
   });

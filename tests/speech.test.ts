@@ -50,6 +50,15 @@ describe('voices', () => {
     expect(rankVoices(google, 'en', 'en-GB')[0].name).toBe('Google UK English Female');
   });
 
+  it('finds voices filed under another code for the same language', () => {
+    const others = [
+      { name: 'Blessica', lang: 'fil-PH' },
+      { name: 'Damayanti', lang: 'in_ID' },
+    ];
+    expect(rankVoices(others, 'tl').map((v) => v.name)).toEqual(['Blessica']);
+    expect(rankVoices(others, 'id').map((v) => v.name)).toEqual(['Damayanti']);
+  });
+
   it('keeps the saved voice while it exists', () => {
     expect(pickVoice(voices, 'en', 'Fred')?.name).toBe('Fred');
     expect(pickVoice(voices, 'en', 'Gone')?.name).toMatch(/Natural/);

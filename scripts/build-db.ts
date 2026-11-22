@@ -50,6 +50,7 @@ for (const t of translations) {
   const maxChapter = new Map<number, number>();
   let count = 0;
   let skipped = 0;
+  let carry = '';
   for (const line of lines) {
     const m = line.match(LINE);
     if (!m) continue;
@@ -59,13 +60,24 @@ for (const t of translations) {
       continue;
     }
     const para = m[4].includes('¶');
-    const text = m[4]
+    let text = m[4]
       .replace(/¶/g, '')
       .replace(/\[\d+(?::\d+)?[ab]?\]/g, '') // other verse numbering, noted in the text (Luther 1912: "[32:1]", "[1b]")
+      .replace(/^\s*\(\d+-\d+[ab]?\)/, '') // other verse numbering at the start (AYT: "(24-1)")
+      .replace(/\s*\([^()]*\d+:\d+[^()]*\)/g, '') // cross-references in the text (Hindi IRV: "(इब्रा. 1:10)")
+      .replace(/\s*\/\/\s*/g, ' ') // poetry line breaks (Swahili Neno)
+      .replace(/\s+\*\s*$/, '') // a stray footnote mark (Tagalog ULB)
       .replace(/\s+/g, ' ')
       // No space before a comma or full stop ("[fizer] ," in the Bíblia Livre). French keeps its space before ";".
       .replace(t.language === 'fr' ? / ([,.])(?!\.)/g : / ([,.;])(?!\.)/g, '$1')
       .trim();
+    // A bracket that opens at the end of a verse belongs to the next one (Swahili Neno: "… unajisi. [" + "Kama …]")
+    text = carry + text;
+    carry = '';
+    if (text.endsWith('[')) {
+      carry = '[';
+      text = text.slice(0, -1).trimEnd();
+    }
     if (!text) continue; // verse omitted by this translation
     const chapter = Number(m[2]);
     insertVerse.run(t.id, book, chapter, Number(m[3]), text, para ? 1 : 0);

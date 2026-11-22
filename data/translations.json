@@ -97,5 +97,65 @@
     "sourceUrl": "https://ebible.org/Scriptures/ita1927_vpl.zip",
     "license": "Pubblico dominio",
     "attribution": "La Sacra Bibbia, versione Riveduta 1927 (Giovanni Luzzi), pubblico dominio. Testo di eBible.org."
+  },
+  {
+    "id": "svoboda",
+    "abbr": "БС",
+    "name": "Библия свободы",
+    "language": "ru",
+    "languageName": "Русский",
+    "dir": "ltr",
+    "source": "rusfb",
+    "sourceUrl": "https://ebible.org/Scriptures/rusfb_vpl.zip",
+    "license": "Общественное достояние",
+    "attribution": "Библия свободы (БС), перевод «Библия Свободы», общественное достояние. Черновой вариант перевода. Текст с eBible.org."
+  },
+  {
+    "id": "ayt",
+    "abbr": "AYT",
+    "name": "Alkitab Yang Terbuka",
+    "language": "id",
+    "languageName": "Bahasa Indonesia",
+    "dir": "ltr",
+    "source": "indayt",
+    "sourceUrl": "https://ebible.org/Scriptures/indayt_vpl.zip",
+    "license": "CC BY-NC-ND 4.0",
+    "attribution": "Alkitab Yang Terbuka (AYT), hak cipta © 2011-2024 YLSA-AYT (ayt.co). Lisensi Creative Commons Atribusi-NonKomersial-TanpaTurunan 4.0 (creativecommons.org/licenses/by-nc-nd/4.0), hanya untuk penggunaan non-komersial. Teks dari eBible.org."
+  },
+  {
+    "id": "vi1934",
+    "abbr": "VI1934",
+    "name": "Kinh Thánh 1934 (Bản Truyền Thống)",
+    "language": "vi",
+    "languageName": "Tiếng Việt",
+    "dir": "ltr",
+    "source": "vie1934",
+    "sourceUrl": "https://ebible.org/Scriptures/vie1934_vpl.zip",
+    "license": "Phạm vi công cộng",
+    "attribution": "Kinh Thánh, bản dịch 1934 (Bản Truyền Thống), thuộc phạm vi công cộng. Văn bản từ eBible.org."
+  },
+  {
+    "id": "neno",
+    "abbr": "NENO",
+    "name": "Biblia Takatifu, Toleo Wazi Neno",
+    "language": "sw",
+    "languageName": "Kiswahili",
+    "dir": "ltr",
+    "source": "swhonen",
+    "sourceUrl": "https://ebible.org/Scriptures/swhonen_vpl.zip",
+    "license": "CC BY-SA 4.0",
+    "attribution": "Biblica® Toleo Wazi Neno: Bibilia Takatifu™, hakimiliki © 1984, 1989, 2009, 2015 Biblica, Inc. Imetolewa chini ya leseni ya Creative Commons Attribution-ShareAlike 4.0 (creativecommons.org/licenses/by-sa/4.0). Maandishi kutoka eBible.org; Booksor imeondoa alama za mistari ya mashairi."
+  },
+  {
+    "id": "tlulb",
+    "abbr": "ULB",
+    "name": "Tagalog Unlocked Literal Bible",
+    "language": "tl",
+    "languageName": "Tagalog",
+    "dir": "ltr",
+    "source": "tglulb",
+    "sourceUrl": "https://ebible.org/Scriptures/tglulb_vpl.zip",
+    "license": "CC BY-SA 4.0",
+    "attribution": "Banal na Bibliya, Tagalog Unlocked Literal Bible (ULB), copyright © 2018 Door43 World Missions Community. Lisensiyang Creative Commons Attribution-ShareAlike 4.0 (creativecommons.org/licenses/by-sa/4.0). Teksto mula sa eBible.org."
   }
 ]

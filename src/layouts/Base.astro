@@ -122,21 +122,30 @@ const canonical = new URL(Astro.url.pathname.replace(/\.html$/, '').replace(/\/$
           {lang === 'en' && <a href="/help">{m.site.hardTimes}</a>}
           <a href="/saved">{m.site.saved}</a>
           <a href="/about">{m.site.about}</a>
-          {TRANSLATIONS.map((t) => <a href={`/${t.id}`} lang={t.language}>{t.abbr}</a>)}
+          {TRANSLATIONS.filter((t) => t.language === lang).map((t) => <a href={`/${t.id}`} lang={t.language}>{t.abbr}</a>)}
         </nav>
-        <nav class="languages" aria-label={m.site.languages}>
-          {
-            UI_LANGS.map((l) =>
-              l === lang ? (
-                <span aria-current="true">{LANGUAGE_NAMES[l]}</span>
-              ) : (
-                <a href={homeUrl(l)} lang={l} hreflang={l}>
-                  {LANGUAGE_NAMES[l]}
-                </a>
-              ),
-            )
-          }
-        </nav>
+        <!-- Every language, folded into one small menu so the footer stays short however many there are -->
+        <details class="languages">
+          <summary aria-label={`${m.site.languages}: ${LANGUAGE_NAMES[lang]}`}>
+            <span set:html={iconSvg('globe', 16)} />
+            {LANGUAGE_NAMES[lang]}
+          </summary>
+          <ul>
+            {
+              UI_LANGS.map((l) => (
+                <li>
+                  {l === lang ? (
+                    <span aria-current="true">{LANGUAGE_NAMES[l]}</span>
+                  ) : (
+                    <a href={homeUrl(l)} lang={l} hreflang={l}>
+                      {LANGUAGE_NAMES[l]}
+                    </a>
+                  )}
+                </li>
+              ))
+            }
+          </ul>
+        </details>
       </div>
     </footer>
     <!-- Keeps reading aloud as you move between pages -->
@@ -156,6 +165,18 @@ const canonical = new URL(Astro.url.pathname.replace(/\.html$/, '').replace(/\/$
   if (import.meta.env.PROD && 'serviceWorker' in navigator) {
     window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
   }
+
+  // The footer language menu closes on a click elsewhere or Escape, like other menus
+  const closeLanguages = (e: Event) => {
+    const menu = document.querySelector<HTMLDetailsElement>('details.languages[open]');
+    if (!menu) return;
+    if (e instanceof KeyboardEvent ? e.key === 'Escape' : !menu.contains(e.target as Node)) {
+      menu.open = false;
+      if (e instanceof KeyboardEvent) menu.querySelector('summary')?.focus();
+    }
+  };
+  document.addEventListener('click', closeLanguages);
+  document.addEventListener('keydown', closeLanguages);
 
   // (also set before each page swap by the inline script in <head>)
   const showConnection = () => document.documentElement.toggleAttribute('data-offline', !navigator.onLine);
@@ -266,7 +287,53 @@ const canonical = new URL(Astro.url.pathname.replace(/\.html$/, '').replace(/\/$
     color: var(--muted);
   }
   .languages {
-    flex-basis: 100%;
+    position: relative;
+  }
+  .languages summary {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    list-style: none;
+  }
+  .languages summary::-webkit-details-marker {
+    display: none;
+  }
+  .languages summary::after {
+    content: '▾';
+    font-size: 12px;
+  }
+  .languages summary span {
+    display: inline-flex;
+  }
+  /* Opens upwards, since it sits at the bottom of the page */
+  .languages ul {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    inset-inline-start: 0;
+    z-index: 10;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(8em, auto));
+    gap: 2px 8px;
+    margin: 0;
+    padding: 8px;
+    list-style: none;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgb(0 0 0 / 0.12);
+  }
+  .languages li > * {
+    display: block;
+    padding: 6px 8px;
+    border-radius: 8px;
+  }
+  .languages a {
+    text-decoration: none;
+  }
+  .languages a:hover {
+    background: var(--surface-2);
+    color: var(--text);
   }
   .languages [aria-current] {
     color: var(--text);

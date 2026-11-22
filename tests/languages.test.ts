@@ -43,6 +43,10 @@ describe('every language', () => {
     expect(uiLang('vi-VN')).toBe('vi');
     expect(uiLang('sw-KE')).toBe('sw');
     expect(uiLang('tl')).toBe('tl');
+    expect(uiLang('zh-CN')).toBe('zh');
+    expect(uiLang('zh-Hant-TW')).toBe('zh');
+    expect(uiLang('ar-EG')).toBe('ar');
+    expect(uiLang('hi-IN')).toBe('hi');
     expect(uiLang('nl-NL')).toBe('en');
     expect(uiLang(undefined)).toBe('en');
   });
@@ -156,6 +160,39 @@ const REFERENCES: Record<Exclude<UiLang, 'en' | 'es'>, [string, string][]> = {
     ['pahayag 21', 'Pahayag 21'],
     ['awit ng mga awit 2', 'Awit ng mga Awit 2'],
   ],
+  zh: [
+    ['约 3:16', '约翰福音 3:16'],
+    ['约翰福音3:16', '约翰福音 3:16'],
+    ['約翰福音 3:16', '约翰福音 3:16'],
+    ['约３：１６', '约翰福音 3:16'],
+    ['创 1', '创世记 1'],
+    ['诗 23', '诗篇 23'],
+    ['林前 13:4-7', '哥林多前书 13:4-7'],
+    ['约一 4', '约翰一书 4'],
+    ['徒 2:38', '使徒行传 2:38'],
+    ['启 21', '启示录 21'],
+  ],
+  ar: [
+    ['يو 3:16', 'يوحنا 3:16'],
+    ['يوحنا ٣:١٦', 'يوحنا 3:16'],
+    ['تك 1', 'التكوين 1'],
+    ['مز 23', 'المزامير 23'],
+    ['1كو 13:4-7', 'كورنثوس الأولى 13:4-7'],
+    ['كورنثوس الأولى 13', 'كورنثوس الأولى 13'],
+    ['أع 2:38', 'أعمال الرسل 2:38'],
+    ['رؤ 21', 'رؤيا يوحنا 21'],
+    ['اشعياء 53', 'إشعياء 53'],
+  ],
+  hi: [
+    ['यूह 3:16', 'यूहन्ना 3:16'],
+    ['यूह. 3:16', 'यूहन्ना 3:16'],
+    ['यूहन्ना ३:१६', 'यूहन्ना 3:16'],
+    ['उत्प 1', 'उत्पत्ति 1'],
+    ['भजन 23', 'भजन संहिता 23'],
+    ['1 कुरि 13:4-7', '1 कुरिन्थियों 13:4-7'],
+    ['प्रेरि 2:38', 'प्रेरितों के काम 2:38'],
+    ['प्रका 21', 'प्रकाशितवाक्य 21'],
+  ],
 };
 
 describe.each(Object.entries(REFERENCES))('%s references', (lang, cases) => {
@@ -249,6 +286,27 @@ describe('search words', () => {
     skipped('tl', 'mga');
   });
 
+  it('Chinese: single characters and pairs', () => {
+    expect(processTermFor('zh')('神爱世人')).toEqual(['神', '神爱', '爱', '爱世', '世', '世人', '人']);
+    expect(processTermFor('zh')('他的')).toEqual(['他', '他的']); // 的 only counts inside a pair
+    expect(highlight('「 神爱世人，甚至', ['神爱', '爱世', '世人'], 'zh')).toBe('「 <mark>神爱世人</mark>，甚至');
+    expect(highlight('爱是恒久忍耐', ['爱'], 'zh')).toBe('<mark>爱</mark>是恒久忍耐');
+  });
+
+  it('Arabic: vowel marks, alif forms, prefixes and suffixes', () => {
+    same('ar', 'ٱللَّهُ', 'الله');
+    same('ar', 'ٱلْمَحَبَّةُ', 'محبه');
+    same('ar', 'وَٱلْأَرْضَ', 'الأرض');
+    skipped('ar', 'فِي');
+  });
+
+  it('Hindi: endings, nukta', () => {
+    same('hi', 'लोगों', 'लोग');
+    same('hi', 'बातें', 'बात');
+    same('hi', 'ज़मीन', 'जमीन');
+    skipped('hi', 'और');
+  });
+
   it('highlights with the original spelling kept', () => {
     expect(highlight('Der HERR ist mein Hirte', ['hirt'], 'de')).toBe('Der HERR ist mein <mark>Hirte</mark>');
     expect(highlight('Car Dieu a tant aimé le monde', ['aime'], 'fr')).toBe('Car Dieu a tant <mark>aimé</mark> le monde');
@@ -319,6 +377,27 @@ const FAMOUS: Record<Exclude<UiLang, 'en' | 'es'>, [string, string][]> = {
     ['magagawa ko ang lahat ng mga bagay', 'Filipos 4:13'],
     ['lumapit kayo sa akin kayong lahat na nahihirapan', 'Mateo 11:28'],
     ['ang pag-ibig ay mapagpasensya', '1 Corinto 13:4'],
+  ],
+  zh: [
+    ['耶和华是我的牧者', '诗篇 23:1'],
+    ['神爱世人', '约翰福音 3:16'],
+    ['我靠着那加给我力量的，凡事都能做', '腓立比书 4:13'],
+    ['凡劳苦担重担的人', '马太福音 11:28'],
+    ['爱是恒久忍耐', '哥林多前书 13:4'],
+  ],
+  ar: [
+    ['الرب راعي فلا يعوزني شيء', 'المزامير 23:1'],
+    ['هكذا أحب الله العالم', 'يوحنا 3:16'],
+    ['أستطيع كل شيء في المسيح', 'فيلبي 4:13'],
+    ['تعالوا إلي يا جميع المتعبين', 'متى 11:28'],
+    ['المحبة تتأنى وترفق', 'كورنثوس الأولى 13:4'],
+  ],
+  hi: [
+    ['यहोवा मेरा चरवाहा है', 'भजन संहिता 23:1'],
+    ['परमेश्वर ने जगत से ऐसा प्रेम रखा', 'यूहन्ना 3:16'],
+    ['मैं सब कुछ कर सकता हूँ', 'फिलिप्पियों 4:13'],
+    ['हे सब परिश्रम करनेवालों और बोझ से दबे लोगों', 'मत्ती 11:28'],
+    ['प्रेम धीरजवन्त है', '1 कुरिन्थियों 13:4'],
   ],
 };
 

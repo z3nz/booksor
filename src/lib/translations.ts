@@ -15,5 +15,8 @@ export function defaultTranslationFor(lang: string): string {
   return TRANSLATIONS.find((t) => t.language === lang)?.id ?? DEFAULT_TRANSLATION;
 }
 
+/** Which way a language is written: "rtl" for Arabic */
+export const directionOf = (lang: string): 'ltr' | 'rtl' => TRANSLATIONS.find((t) => t.language === lang)?.dir ?? 'ltr';
+
 /** Every language there's a Bible in */
 export const TRANSLATION_LANGUAGES = [...new Set(TRANSLATIONS.map((t) => t.language))];

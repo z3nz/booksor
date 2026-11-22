@@ -11,7 +11,7 @@ A free, fast, beautiful Bible site at **booksor.com**.
   - English: KJV, World English Bible (WEB), Berean Standard Bible (BSB), ASV, Young's Literal
   - Other languages: [eBible.org](https://ebible.org/Scriptures/) has free texts in hundreds of languages, all in the same verse-per-line format our importer reads
 - **Never machine-translate scripture.** The site's menus can be translated, but Bible text always comes from a real, published translation.
-- **Cloudflare static file limit.** A free deploy can hold 20,000 files. Each translation adds about 1,200 chapter pages, so around 12–15 translations we switch to rendering chapters on demand (see Phase 2).
+- **Cloudflare static file limit.** A free Worker can hold 20,000 files and each translation adds about 1,190, so each language has its own files-only Worker (`booksor-es`…), routed by path. About 15 translations fit per language.
 - **AI content is always labeled** and kept separate from scripture.
 
 ## Phase 1 — MVP
@@ -32,11 +32,12 @@ A free, fast, beautiful Bible site at **booksor.com**.
 ## Phase 2 — Languages, situations, reading mode
 
 - [x] **M** Spanish: Reina-Valera 1909, Spanish book names and references ("Jn 3,16", "1 Co 13"), accent-insensitive search, menus in Spanish on Spanish pages (`src/i18n/`), a Spanish home page at /es, hreflang links between languages
-- [ ] **S** Native speaker review of the menus and book names: Spanish, Portuguese, French, German, Italian, Russian, Indonesian, Vietnamese, Swahili, Tagalog (`src/i18n/{lang}.ts`)
+- [ ] **S** Native speaker review of the menus and book names: Spanish, Portuguese, French, German, Italian, Russian, Indonesian, Vietnamese, Swahili, Tagalog, Chinese, Arabic, Hindi (`src/i18n/{lang}.ts`)
 - [x] **M** Languages past the 20k-file limit: each language in its own files-only Worker (`scripts/split-dist.ts`)
 - [x] **M** Batch A: Portuguese (Bíblia Livre), French (Sainte Bible libre pour le monde), German (Luther 1912), Italian (Riveduta 1927)
 - [x] **M** Batch B: Russian (Freedom Bible), Indonesian (AYT), Vietnamese (1934), Swahili (Neno), Tagalog (ULB), and a compact footer language menu
-- [ ] **M** More languages (full plan: `docs/plans/more-languages.md`). Batch C next: Chinese (needs word segmentation for search), Arabic (right to left), Hindi. Korean waits for a complete open text (the 1910 one is missing ~111 verses). The Russian Synodal could follow with a Psalms renumbering table. Each translation adds ~1,190 files
+- [x] **M** Batch C: Chinese (Union Version, simplified; search by characters and pairs), Arabic (Van Dyck; right to left), Hindi (IRV)
+- [ ] **M** More languages and translations (plan: `docs/plans/more-languages.md`). The first wave is done except Korean, which waits for a complete open text (the 1910 one is missing ~111 verses). Next could be: the Russian Synodal with a Psalms renumbering table, Louis Segond with the same, traditional Chinese (`cmn-cu89t`, same numbering), and web fonts for Arabic, Chinese and Hindi (system fonts for now). Each translation adds ~1,190 files
 - [ ] **M** Past ~10 more translations we hit the 20k-file limit per Worker. Plan (chosen): split translations across extra static-only Workers routed by path on booksor.com, each with its own 20k files; stays free with no request cap. (On-demand rendering was the alternative, but the free plan caps Workers at 100k requests/day)
 - [ ] **M** "Hard times" topics in other languages (39 topic pages are English only for now)
 - [x] **M** "I'm struggling with…" situation search: 39 curated situations (`data/situations.json`) with topic pages, a `/help` hub, search cards, and crisis resources for sensitive topics

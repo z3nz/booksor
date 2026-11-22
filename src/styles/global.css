@@ -225,3 +225,10 @@ mark {
     scroll-behavior: auto !important;
   }
 }
+
+/* Arrows that point along the reading direction: mirrored in right-to-left text (Arabic). :dir() follows the nearest
+   dir attribute, so "Read in English →" on an Arabic page keeps its arrow. */
+.flip:dir(rtl) {
+  display: inline-block;
+  transform: scaleX(-1);
+}

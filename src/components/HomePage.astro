@@ -5,7 +5,7 @@ import SearchBox from './SearchBox.svelte';
 import VerseOfTheDay from './VerseOfTheDay.svelte';
 import { bookName, homeUrl, messages, UI_LANGS, type UiLang } from '../i18n/index.ts';
 import { BOOKS, bookBySlug, chapterUrl } from '../lib/books.ts';
-import { DEFAULT_TRANSLATION, defaultTranslationFor } from '../lib/translations.ts';
+import { DEFAULT_TRANSLATION, defaultTranslationFor, directionOf } from '../lib/translations.ts';
 import { helpUrl, POPULAR_SITUATIONS, situationBySlug } from '../lib/situations.ts';
 
 interface Props {
@@ -44,8 +44,8 @@ const others = UI_LANGS.filter((l) => l !== lang);
   <section class="hero container">
     {
       others.map((l) => (
-        <a class="lang-hint" href={homeUrl(l)} lang={l} hreflang={l} data-lang-hint={l} hidden>
-          {messages(l).home.readHere} →
+        <a class="lang-hint" href={homeUrl(l)} lang={l} dir={directionOf(l)} hreflang={l} data-lang-hint={l} hidden>
+          {messages(l).home.readHere} <span class="flip" aria-hidden="true">→</span>
         </a>
       ))
     }

@@ -403,7 +403,7 @@
     padding: 16px 18px;
   }
   .item.colored {
-    border-left: 6px solid var(--swatch);
+    border-inline-start: 6px solid var(--swatch);
   }
   .item-head {
     display: flex;

@@ -459,8 +459,8 @@
     margin: 0;
     max-height: 7.5em;
     overflow: auto;
-    padding-left: 12px;
-    border-left: 3px solid var(--border);
+    padding-inline-start: 12px;
+    border-inline-start: 3px solid var(--border);
     color: var(--muted);
     font-size: 15px;
     line-height: 1.5;

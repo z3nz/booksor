@@ -33,13 +33,13 @@
   .care {
     padding: 14px 16px;
     border: 1px solid var(--border);
-    border-left: 4px solid var(--accent);
+    border-inline-start: 4px solid var(--accent);
     border-radius: 10px;
     background: var(--surface);
     font-family: var(--font-ui);
     font-size: 15px;
     line-height: 1.5;
-    text-align: left;
+    text-align: start;
   }
   .care.urgent {
     background: color-mix(in srgb, var(--accent) 7%, var(--surface));

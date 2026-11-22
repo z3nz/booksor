@@ -31,12 +31,18 @@ export async function shareOrCopy(data: { title: string; text: string; url: stri
   return (await copyText(`${data.text}\n${data.url}`)) ? 'copied' : 'failed';
 }
 
+/** Punctuation that mustn't start a line of Chinese */
+const CLOSING = /^[，。、；：！？」』）》〉…—,.;:!?)]/u;
+
 function wrap(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
+  // Chinese has no spaces between words, so it breaks between characters
+  const chinese = /\p{Script=Han}/u.test(text);
+  const tokens = chinese ? [...text.replace(/\s+/g, ' ')] : text.split(/\s+/);
   const lines: string[] = [];
   let line = '';
-  for (const word of text.split(/\s+/)) {
-    const next = line ? `${line} ${word}` : word;
-    if (ctx.measureText(next).width > maxWidth && line) {
+  for (const word of tokens) {
+    const next = chinese ? line + word : line ? `${line} ${word}` : word;
+    if (ctx.measureText(next).width > maxWidth && line && !(chinese && CLOSING.test(word))) {
       lines.push(line);
       line = word;
     } else {
@@ -44,7 +50,7 @@ function wrap(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): st
     }
   }
   if (line) lines.push(line);
-  return lines;
+  return chinese ? lines.map((l) => l.trim()) : lines;
 }
 
 /** Draw a shareable 1080×1350 verse card. */
@@ -64,6 +70,10 @@ export async function verseImage(opts: { text: string; reference: string }): Pro
   canvas.width = W;
   canvas.height = H;
   const ctx = canvas.getContext('2d')!;
+  // Right to left (Arabic): text starts at the right edge, and the quote mark and reference go there too
+  const rtl = document.documentElement.dir === 'rtl';
+  ctx.direction = rtl ? 'rtl' : 'ltr';
+  const start = rtl ? W - PAD : PAD;
 
   const bg = ctx.createLinearGradient(0, 0, W, H);
   bg.addColorStop(0, '#fbf6ea');
@@ -80,7 +90,8 @@ export async function verseImage(opts: { text: string; reference: string }): Pro
   ctx.fillStyle = 'rgba(138, 59, 46, 0.18)';
   ctx.font = `700 260px ${serif}`;
   ctx.textBaseline = 'top';
-  ctx.fillText('“', PAD - 20, 70);
+  ctx.textAlign = 'start';
+  ctx.fillText('“', rtl ? start + 20 : start - 20, 70);
 
   // Fit the verse text into the middle of the card
   const quote = `${opts.text}`;
@@ -99,20 +110,20 @@ export async function verseImage(opts: { text: string; reference: string }): Pro
   ctx.fillStyle = '#2b2520';
   ctx.font = `400 ${size}px ${serif}`;
   for (const l of lines) {
-    ctx.fillText(l, PAD, y);
+    ctx.fillText(l, start, y);
     y += lineH;
   }
 
   // Reference
   ctx.fillStyle = '#8a3b2e';
   ctx.font = `600 38px ${sans}`;
-  ctx.fillText(`— ${opts.reference}`, PAD, y + 36);
+  ctx.fillText(`— ${opts.reference}`, start, y + 36);
 
   // Footer
   ctx.fillStyle = '#7a6f63';
   ctx.font = `500 28px ${sans}`;
-  ctx.textAlign = 'right';
-  ctx.fillText('booksor.com', W - PAD, H - PAD - 10);
+  ctx.textAlign = 'end';
+  ctx.fillText('booksor.com', rtl ? PAD : W - PAD, H - PAD - 10);
 
   return new Promise((resolve, reject) =>
     canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Could not create image'))), 'image/png'),

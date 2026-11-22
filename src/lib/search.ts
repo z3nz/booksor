@@ -4,7 +4,7 @@
 // so a quote in any wording finds the verse. Results are shown in the reader's translation.
 import MiniSearch, { type SearchResult } from 'minisearch';
 import { verseKey } from './books.ts';
-import { processTermFor, words } from './terms.ts';
+import { processTermFor, termsOf, words } from './terms.ts';
 import type { SearchRow } from './types.ts';
 
 export { combineWords, highlight, processTerm, processTermFor, stem } from './terms.ts';
@@ -40,6 +40,8 @@ export interface SearchOutcome {
 }
 
 const normalize = (s: string) => words(s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()).join(' ');
+/** Chinese is written without spaces: compare phrases with none (the Union Version puts a space before 神) */
+const phraseOf = (s: string, lang: string) => (lang === 'zh' ? normalize(s).replace(/ /g, '') : normalize(s));
 
 export function search(
   index: SearchIndex,
@@ -49,7 +51,6 @@ export function search(
   limit = 30,
   lang = 'en',
 ): SearchOutcome {
-  const processTerm = processTermFor(lang);
   const options = {
     // Only the word being typed is treated as a prefix ("lov" -> love, loved, loveth)
     prefix: (_term: string, i: number, terms: string[]) => i === terms.length - 1,
@@ -63,10 +64,8 @@ export function search(
   const partial = !results.length;
   if (partial) results = index.search(q, { ...options, combineWith: 'OR' });
 
-  const phrase = normalize(q);
-  const queryTerms = words(q)
-    .map(processTerm)
-    .filter((t): t is string => !!t);
+  const phrase = phraseOf(q, lang);
+  const queryTerms = termsOf(lang, words(q));
   const last = queryTerms.length - 1;
 
   const ranked = [];
@@ -74,7 +73,7 @@ export function search(
     const [b, c, v] = rows[r.id];
     const text = display.get(verseKey(b, c, v));
     if (text === undefined) continue; // verse not in this translation
-    const here = new Set(words(text).map(processTerm));
+    const here = new Set(termsOf(lang, words(text)));
     // A small nudge toward verses whose wording in the reader's own translation uses the query
     // words. Kept small (tuned against tests/search.test.ts) so quotes from other translations
     // still win; the word still being typed gets less for a partial match.
@@ -86,7 +85,8 @@ export function search(
       else otherWording = true; // this word only appears in another translation's wording
     });
     // Exact phrase in the reader's translation goes first
-    if (phrase.includes(' ') && normalize(text).includes(phrase)) score += 1000;
+    const longPhrase = lang === 'zh' ? [...phrase].length > 1 : phrase.includes(' ');
+    if (longPhrase && phraseOf(text, lang).includes(phrase)) score += 1000;
     // For closest matches, verses matching more of the query words come first
     if (partial) score += r.queryTerms.length * 100;
     ranked.push({ b, c, v, text, score, terms: r.terms, otherWording });

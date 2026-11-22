@@ -9,7 +9,7 @@ import ListenPlayer from '../components/ListenPlayer.svelte';
 import { ClientRouter } from 'astro:transitions';
 import { homeUrl, LANGUAGE_NAMES, messages, UI_LANGS, uiLang, type UiLang } from '../i18n/index.ts';
 import { iconSvg } from '../lib/icons.ts';
-import { languageOf, TRANSLATIONS } from '../lib/translations.ts';
+import { directionOf, languageOf, translationById, TRANSLATIONS } from '../lib/translations.ts';
 
 interface Props {
   title: string;
@@ -30,11 +30,13 @@ interface Props {
 const { title, description, translation, location, showSearch = true, noindex = false, alternates = [] } = Astro.props;
 const lang = Astro.props.lang ?? uiLang(languageOf(translation));
 const m = messages(lang);
+// Right to left for Arabic: the translation's direction on Bible pages, the language's elsewhere
+const dir = (translation && translationById.get(translation)?.dir) || directionOf(lang);
 const canonical = new URL(Astro.url.pathname.replace(/\.html$/, '').replace(/\/$/, '') || '/', Astro.site);
 ---
 
 <!doctype html>
-<html lang={lang}>
+<html lang={lang} dir={dir}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -137,7 +139,7 @@ const canonical = new URL(Astro.url.pathname.replace(/\.html$/, '').replace(/\/$
                   {l === lang ? (
                     <span aria-current="true">{LANGUAGE_NAMES[l]}</span>
                   ) : (
-                    <a href={homeUrl(l)} lang={l} hreflang={l}>
+                    <a href={homeUrl(l)} lang={l} dir={directionOf(l)} hreflang={l}>
                       {LANGUAGE_NAMES[l]}
                     </a>
                   )}
@@ -231,7 +233,7 @@ const canonical = new URL(Astro.url.pathname.replace(/\.html$/, '').replace(/\/$
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-left: auto;
+    margin-inline-start: auto;
   }
   .offline-pill {
     display: none;
@@ -286,8 +288,13 @@ const canonical = new URL(Astro.url.pathname.replace(/\.html$/, '').replace(/\/$
   .footer-inner a {
     color: var(--muted);
   }
+  /* On its own line at the start, so the menu above it always opens across the page, never off its edge */
   .languages {
     position: relative;
+    flex-basis: 100%;
+  }
+  .languages summary {
+    width: fit-content;
   }
   .languages summary {
     display: inline-flex;

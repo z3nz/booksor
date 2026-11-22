@@ -102,7 +102,7 @@
   .panel {
     position: absolute;
     top: calc(100% + 8px);
-    right: 0;
+    inset-inline-end: 0;
     z-index: 40;
     width: min(320px, calc(100vw - 32px));
     max-height: calc(100dvh - 90px);

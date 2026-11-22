@@ -96,7 +96,7 @@
 <style>
   .votd {
     padding: 24px;
-    text-align: left;
+    text-align: start;
   }
   .top {
     display: flex;

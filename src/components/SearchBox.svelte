@@ -297,7 +297,7 @@
   }
   .icon {
     position: absolute;
-    left: 14px;
+    inset-inline-start: 14px;
     color: var(--muted);
     pointer-events: none;
   }
@@ -323,7 +323,7 @@
   }
   .hint {
     position: absolute;
-    right: 12px;
+    inset-inline-end: 12px;
     padding: 1px 7px;
     border: 1px solid var(--border);
     border-radius: 6px;
@@ -338,12 +338,12 @@
   }
   .hero input {
     height: 58px;
-    padding-left: 50px;
+    padding-inline-start: 50px;
     font-size: 18px;
     box-shadow: var(--shadow);
   }
   .hero .icon {
-    left: 18px;
+    inset-inline-start: 18px;
     width: 22px;
     height: 22px;
   }
@@ -369,7 +369,7 @@
   }
   .hero .panel {
     margin-top: 16px;
-    text-align: left;
+    text-align: start;
   }
 
   .result {
@@ -415,7 +415,7 @@
     font-size: 17px;
   }
   .other {
-    margin-left: 6px;
+    margin-inline-start: 6px;
     padding: 1px 7px;
     border-radius: 999px;
     background: var(--surface-2);
@@ -424,7 +424,7 @@
     font-weight: 500;
   }
   .tr {
-    margin-left: 4px;
+    margin-inline-start: 4px;
     color: var(--muted);
     font-size: 12px;
     font-weight: 500;

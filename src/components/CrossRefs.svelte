@@ -520,7 +520,7 @@
     background: none;
     color: var(--text);
     font: inherit;
-    text-align: left;
+    text-align: start;
     cursor: pointer;
   }
   .mini-label strong,

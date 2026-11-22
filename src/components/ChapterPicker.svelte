@@ -83,7 +83,7 @@
     align-items: center;
     gap: 6px;
     padding: 6px 12px;
-    margin-left: -12px;
+    margin-inline-start: -12px;
     border: 0;
     border-radius: 10px;
     background: transparent;
@@ -156,7 +156,7 @@
     border: 1px solid transparent;
     border-radius: 8px;
     background: transparent;
-    text-align: left;
+    text-align: start;
     font-size: 15px;
     cursor: pointer;
   }

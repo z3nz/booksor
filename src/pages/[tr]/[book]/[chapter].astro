@@ -110,7 +110,7 @@ const alternates: [string, string][] =
       {
         prev ? (
           <a class="btn" href={chapterUrl(t.id, prev.book, prev.chapter)} data-nav="prev" rel="prev">
-            ← {bookName(prev.book, lang)} {prev.chapter}
+            <span class="flip" aria-hidden="true">←</span> {bookName(prev.book, lang)} {prev.chapter}
           </a>
         ) : (
           <span />
@@ -119,7 +119,7 @@ const alternates: [string, string][] =
       {
         next && (
           <a class="btn" href={chapterUrl(t.id, next.book, next.chapter)} data-nav="next" rel="next">
-            {bookName(next.book, lang)} {next.chapter} →
+            {bookName(next.book, lang)} {next.chapter} <span class="flip" aria-hidden="true">→</span>
           </a>
         )
       }
@@ -167,12 +167,14 @@ const alternates: [string, string][] =
     };
   });
 
-  // ← / → move between chapters (added once; works on whichever chapter is showing)
+  // ← / → move between chapters (added once; works on whichever chapter is showing). Right to left, ← is next.
   document.addEventListener('keydown', (e) => {
     if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
     if ((e.target as HTMLElement).closest('input, textarea, select, [contenteditable="true"]')) return;
     if (document.querySelector('dialog[open]')) return;
-    const rel = e.key === 'ArrowRight' ? 'next' : e.key === 'ArrowLeft' ? 'prev' : null;
+    const forward = document.documentElement.dir === 'rtl' ? 'ArrowLeft' : 'ArrowRight';
+    const back = forward === 'ArrowLeft' ? 'ArrowRight' : 'ArrowLeft';
+    const rel = e.key === forward ? 'next' : e.key === back ? 'prev' : null;
     const link = rel && document.querySelector<HTMLAnchorElement>(`.chapter a[data-nav="${rel}"]`);
     if (link) void navigate(link.href);
   });
@@ -196,8 +198,9 @@ const alternates: [string, string][] =
     margin: 0 0 0.9em;
   }
 .chapter .chapnum {
-    float: left;
-    margin: 0.06em 0.18em 0 0;
+    float: inline-start;
+    margin-block: 0.06em 0;
+    margin-inline: 0 0.18em;
     font-size: 3.6em;
     font-weight: 600;
     line-height: 0.95;
@@ -247,7 +250,7 @@ const alternates: [string, string][] =
     text-underline-offset: 4px;
   }
 .chapter .vn {
-    margin-right: 0.2em;
+    margin-inline-end: 0.2em;
     font-family: var(--font-ui);
     font-size: 0.58em;
     font-weight: 600;
@@ -260,10 +263,10 @@ const alternates: [string, string][] =
     color: var(--accent);
   }
 .chapter .bm-icon {
-    margin-right: 0.15em;
+    margin-inline-end: 0.15em;
   }
 .chapter .note-btn {
-    margin-left: 0.25em;
+    margin-inline-start: 0.25em;
     padding: 2px;
     border: 0;
     border-radius: 6px;
@@ -306,7 +309,7 @@ const alternates: [string, string][] =
 :root[data-study] .chapter .xn {
     display: inline-block;
     min-width: 1.7em;
-    margin-left: 0.3em;
+    margin-inline-start: 0.3em;
     padding: 0 0.4em;
     border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
     border-radius: 999px;

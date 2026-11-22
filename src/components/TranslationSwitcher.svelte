@@ -64,7 +64,8 @@
   }
   select {
     height: 40px;
-    padding: 0 30px 0 14px;
+    padding-block: 0;
+    padding-inline: 14px 30px;
     border: 1px solid var(--border);
     border-radius: 999px;
     background: var(--surface);
@@ -76,7 +77,7 @@
   }
   svg {
     position: absolute;
-    right: 11px;
+    inset-inline-end: 11px;
     color: var(--muted);
     pointer-events: none;
   }

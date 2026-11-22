@@ -157,5 +157,42 @@
     "sourceUrl": "https://ebible.org/Scriptures/tglulb_vpl.zip",
     "license": "CC BY-SA 4.0",
     "attribution": "Banal na Bibliya, Tagalog Unlocked Literal Bible (ULB), copyright © 2018 Door43 World Missions Community. Lisensiyang Creative Commons Attribution-ShareAlike 4.0 (creativecommons.org/licenses/by-sa/4.0). Teksto mula sa eBible.org."
+  },
+  {
+    "id": "cuv",
+    "abbr": "和合本",
+    "name": "和合本（简体）",
+    "language": "zh",
+    "languageName": "中文",
+    "dir": "ltr",
+    "source": "cmn-cu89s",
+    "sourceUrl": "https://ebible.org/Scriptures/cmn-cu89s_vpl.zip",
+    "license": "公有领域",
+    "attribution": "圣经和合本（简体），公有领域。方括号内为译者补充的字词。文本来自 eBible.org。",
+    "suppliedWords": true
+  },
+  {
+    "id": "svd",
+    "abbr": "SVD",
+    "name": "ترجمة فاندايك",
+    "language": "ar",
+    "languageName": "العربية",
+    "dir": "rtl",
+    "source": "arb-vd",
+    "sourceUrl": "https://ebible.org/Scriptures/arb-vd_vpl.zip",
+    "license": "ملكية عامة",
+    "attribution": "الكتاب المقدس، ترجمة سميث وفاندايك (SVD)، ملكية عامة. النص من eBible.org."
+  },
+  {
+    "id": "irv",
+    "abbr": "IRV",
+    "name": "इंडियन रिवाइज्ड वर्जन (IRV) हिंदी",
+    "language": "hi",
+    "languageName": "हिन्दी",
+    "dir": "ltr",
+    "source": "hin2017",
+    "sourceUrl": "https://ebible.org/Scriptures/hin2017_vpl.zip",
+    "license": "CC BY-SA 4.0",
+    "attribution": "इंडियन रिवाइज्ड वर्जन (IRV) हिंदी - 2019, कॉपीराइट © 2017, 2018, 2019 Bridge Connectivity Solutions. Creative Commons Attribution-ShareAlike 4.0 लाइसेंस (creativecommons.org/licenses/by-sa/4.0) के अंतर्गत। पाठ eBible.org से; Booksor ने पाठ में दिए गए संदर्भ हटाए हैं।"
   }
 ]

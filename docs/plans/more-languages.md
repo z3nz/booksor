@@ -1,8 +1,9 @@
 # Plan: more languages, past the 20,000-file limit
 
-Status: **in progress.** Steps 1–4 done, Spanish is live on `booksor-es` (2026-11-20). Batch A (Portuguese,
+Status: **first wave done, except Korean.** Steps 1–4 done, Spanish is live on `booksor-es` (2026-11-20). Batch A (Portuguese,
 French, German, Italian) is live (2026-11-20). Batch B (Russian, Indonesian, Vietnamese, Swahili, Tagalog) is
-built and tested (2026-11-22); next are its deploy and checks by hand, then batch C (Chinese, Arabic, Hindi).
+live (2026-11-22). Batch C (Chinese, Arabic, Hindi) is built and tested (2026-11-22); next are its deploy and checks
+by hand. Korean is on hold.
 
 ## Where we are
 
@@ -163,10 +164,11 @@ Sources:
    - **Batch A** ✅ live 2026-11-20: `blivre` (pt), `sblm` (fr), `luther1912` (de), `riveduta` (it),
      each in its own Worker (`booksor-pt`…, 1,191 files each; main Worker 4,971). See [Batch A notes](#batch-a-notes).
      Still to do: the checks by hand.
-   - **Batch B** 🟡 built and tested 2026-11-22: `svoboda` (ru), `ayt` (id), `vi1934` (vi), `neno` (sw), `tlulb` (tl),
-     1,191 files each (main Worker 4,991). The footer now has a compact language menu. See
-     [Batch B notes](#batch-b-notes). Still to do: deploy, then the checks by hand.
-   - **Batch C**: Chinese, Arabic, Hindi. Korean is on hold (see the notes).
+   - **Batch B** ✅ live 2026-11-22 (`58e6a6c`, all five Workers created in one build): `svoboda` (ru), `ayt` (id),
+     `vi1934` (vi), `neno` (sw), `tlulb` (tl), 1,191 files each. The footer now has a compact language menu. See
+     [Batch B notes](#batch-b-notes). Still to do: the checks by hand.
+   - **Batch C** 🟡 built and tested 2026-11-22: `cuv` (zh), `svd` (ar), `irv` (hi). See
+     [Batch C notes](#batch-c-notes). Still to do: deploy, then the checks by hand. Korean is on hold.
 
 ## First wave: languages and translations
 
@@ -184,9 +186,9 @@ All complete Bibles from eBible.org that it marks as redistributable. **Check ea
 | B | Vietnamese | `vie1934` | Kinh Thánh 1934 (`vi1934`) | Public domain |
 | B | Swahili | `swhonen` | Biblica Toleo Wazi Neno (`neno`) | CC BY-SA 4.0 |
 | B | Tagalog | `tglulb` | Tagalog Unlocked Literal Bible (`tlulb`) | CC BY-SA 4.0 |
-| C | Chinese | `cmn-cu89s` | Chinese Union Version, Simplified | Public domain |
-| C | Arabic | `arb-vd` | Van Dyck | Public domain, **right to left** |
-| C | Hindi | `hin2017` | Indian Revised Version | CC BY-SA 4.0 |
+| C | Chinese | `cmn-cu89s` | 和合本, simplified (`cuv`) | Public domain |
+| C | Arabic | `arb-vd` | Van Dyck (`svd`) | Public domain, **right to left** |
+| C | Hindi | `hin2017` | Indian Revised Version (`irv`) | CC BY-SA 4.0 |
 | ~~C~~ | Korean | `kor` | Korean Bible 1910 | On hold: eBible's copy is missing ~111 verses |
 
 **Check each candidate's verse numbering against the BSB before choosing it** (compare the `BOOK c:v` keys of
@@ -194,10 +196,10 @@ the `_vpl.txt` files; about 16 extra verses that the BSB leaves out are normal).
 the Old Testament differently (Hebrew style), which breaks cross-references, translation switching and even
 chapter counts, unless we write a renumbering table.
 
-Batch C needs extra work, so it comes last:
-- **Chinese:** no spaces between words, so search needs segmenting, e.g. indexing character pairs.
+Batch C needed extra work, so it came last (done, see [Batch C notes](#batch-c-notes)):
+- **Chinese:** no spaces between words, so search indexes characters and pairs.
 - **Arabic:** right-to-left layout.
-- **Hindi and Korean:** fonts and search rules.
+- **Hindi:** combining vowel signs in words and book names, and its own search rules.
 
 ## Checklist for each new language
 
@@ -239,13 +241,12 @@ What adding a language touches (updated after batch A):
   (`navigator.languages`), unless it's the page's own.
 - ✅ **The footer** has a compact language menu (a `<details>` that opens upwards, no script needed) and lists only
   the current language's translations; each language's home page links its own.
-- **Fonts:** Literata and Inter cover Latin, Cyrillic, Greek and Vietnamese. Arabic, Devanagari, Chinese and
-  Korean fall back to system fonts, which is fine to start with. Later, load a Noto font for that language only.
-- **Right to left (Arabic):**
-  - Set `dir="rtl"` on `<html>` for those pages (Base.astro gets `dir` from the translation).
-  - Check the CSS for left/right properties, and switch to logical ones (`margin-inline-start`…) where it
-    matters: the chapter number, the verse bar, the docked cross-reference panel (could dock on the left), and
-    focus mode.
+- **Fonts:** Literata and Inter cover Latin, Cyrillic, Greek and Vietnamese. Arabic, Devanagari and Chinese fall
+  back to system fonts, which looked good in screenshots. Later, maybe load a Noto font for that language only.
+- ✅ **Right to left (Arabic):** `<html dir>` comes from the translation (or the language on home pages), styles
+  use logical properties (`margin-inline-start`, `inset-inline-end`, `text-align: start`, `float: inline-start`),
+  arrows with class `flip` mirror (`:dir(rtl)`), the ←/→ keys swap, and verse images draw from the right. The
+  cross-reference panel and the floating buttons stay on the right, like the scrollbar.
 - **Topic pages** (`/help`) stay English. Translating the 39 topics is its own roadmap item.
 
 ## Batch A notes
@@ -299,10 +300,30 @@ Verse numbering checked against the BSB for every candidate (2026-11-22):
 - **Read-aloud:** Tagalog voices are labelled `fil-PH` and older Android calls Indonesian `in-ID`; voice matching
   now accepts both.
 
+## Batch C notes
+
+- **Chinese search** (`processTermZh`): each run of characters becomes its single characters and overlapping
+  pairs ("神爱世人" → 神 爱 世 人 神爱 爱世 世人); MiniSearch takes several terms per word. A query matches when
+  every character and pair is in the verse, and a verse with the exact phrase (spaces ignored) goes first. The
+  commonest particles (的了之而与和) count only inside pairs. Highlighting marks the characters of matched pairs,
+  or single characters for a one-character query.
+- **Chinese text:** the Union Version puts a space before 神 (the traditional mark of respect); it's kept as a
+  normal space. Its brackets are words the translators supplied (`suppliedWords`). 72 verse numbers don't exist
+  because the text joins them to the verse before (Numbers 1:20–21…); those verses show no text, like other
+  translations' omitted verses. Book names accept traditional characters too (約翰福音, 創).
+- **Arabic:** vowel marks and alif forms are optional in search, and a light stemmer takes off the article and
+  common prefixes and suffixes. References accept Arabic-Indic digits (يو ٣:١٦). Numbers in the menus use
+  Arabic plural rules (one, two, 3–10, 11+).
+- **Hindi:** the IRV's bracketed cross-references are stripped (~2,500 verses; all removed brackets checked: only
+  book abbreviations). Book abbreviations are the IRV's own (यूह., प्रका.). Devanagari digits work in references.
+- **Checked by screenshot** at phone width: Arabic, Chinese and Hindi chapters, the Arabic home page, the language
+  menu in both directions (it now sits on its own line, so it never opens off the edge of the page), and
+  Arabic and Chinese verse images (Chinese wraps between characters).
+
 ## Still to settle
 
 - Native-speaker review of menus and book names: Spanish (`src/i18n/es.ts`), Portuguese, French, German,
-  Italian, Russian, Indonesian, Vietnamese, Swahili, Tagalog.
+  Italian, Russian, Indonesian, Vietnamese, Swahili, Tagalog, Chinese, Arabic, Hindi.
 - A Synodal Russian with a Psalms renumbering table; a Korean text once a complete open one turns up.
 - Whether to also add a second translation for big languages (e.g. a modern Spanish one if an openly licensed
   one turns up).

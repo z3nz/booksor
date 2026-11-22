@@ -158,7 +158,64 @@ export function processTermTl(term: string): string | null {
   return TL_STOP_WORDS.has(t) ? null : t;
 }
 
-const PROCESSORS: Record<string, (term: string) => string | null> = {
+// Chinese has no spaces between words, so each run of characters is indexed as single characters and overlapping
+// pairs ("神爱世人" -> 神 爱 世 人 神爱 爱世 世人). A query matches when every character and pair appears, which
+// finds the phrase without a dictionary; the exact-phrase bonus in search.ts puts verses with it in order first.
+// The commonest particles aren't indexed alone (they still count inside pairs).
+const ZH_STOP_CHARS = new Set('的了之而与和');
+const HAN = /\p{Script=Han}/u;
+export function processTermZh(term: string): string[] | null {
+  const out: string[] = [];
+  // Runs of Chinese characters, and runs of anything else (digits, Latin)
+  for (const run of term.toLowerCase().match(/\p{Script=Han}+|[^\p{Script=Han}]+/gu) ?? []) {
+    if (!HAN.test(run)) {
+      out.push(run);
+      continue;
+    }
+    const chars = [...run];
+    chars.forEach((c, i) => {
+      if (!ZH_STOP_CHARS.has(c)) out.push(c);
+      if (i + 1 < chars.length) out.push(c + chars[i + 1]);
+    });
+  }
+  return out.length ? out : null;
+}
+
+// Arabic: vowel marks and the hamza/madda forms of alif are optional ("ٱللَّهُ", "الله" and "اللة" meet), and the
+// article and the commonest prefixes and suffixes come off (a light stemmer, after Larkey's "light10").
+const normalizeAr = (s: string) =>
+  foldAccents(s)
+    .replace(/[ٱأإآ]/g, 'ا')
+    .replace(/ى/g, 'ي')
+    .replace(/ة/g, 'ه')
+    .replace(/ـ/g, '');
+const AR_STOP_WORDS = stopWords('في من علي الي عن مع ثم او ان هذا هذه ذلك التي الذي');
+export function processTermAr(term: string): string | null {
+  let t = normalizeAr(term);
+  if (AR_STOP_WORDS.has(t)) return null;
+  const prefix = t.match(/^(وال|فال|بال|كال|لل|ال|و)/);
+  if (prefix && t.length - prefix[0].length >= 3) t = t.slice(prefix[0].length);
+  const suffix = t.match(/(ها|هم|كم|ان|ات|ون|ين|يه|ه|ي)$/);
+  if (suffix && t.length - suffix[0].length >= 3) t = t.slice(0, -suffix[0].length);
+  return t;
+}
+
+// Hindi: the nukta and chandrabindu are optional (both are often typed without), and the commonest plural and case
+// endings come off ("लोगों" -> "लोग", "बातें" -> "बात").
+const HI_STOP_WORDS = stopWords('का की के को में से है हैं और ने पर यह वह भी तो ही था थे थी कि जो एक');
+const HI_ENDING = /(ियों|ियाँ|ियां|ाओं|ाएँ|ाएं|ुओं|ों|ें|ीं|ाँ|ां|ी|े|ा|ि|ु|ू)$/;
+export function processTermHi(term: string): string | null {
+  const t = term.normalize('NFD').replace(/\u093C/g, '').replace(/\u0901/g, '\u0902').normalize('NFC');
+  if (HI_STOP_WORDS.has(t)) return null;
+  if (t.length <= 3) return t;
+  const s = t.replace(HI_ENDING, '');
+  return s.length >= 2 ? s : t;
+}
+
+/** One word in, its index term(s) out, or null to skip it. Chinese gives several terms per word. */
+export type TermProcessor = (term: string) => string | string[] | null;
+
+const PROCESSORS: Record<string, TermProcessor> = {
   es: processTermEs,
   pt: processTermPt,
   fr: processTermFr,
@@ -169,10 +226,17 @@ const PROCESSORS: Record<string, (term: string) => string | null> = {
   vi: processTermVi,
   sw: processTermSw,
   tl: processTermTl,
+  zh: processTermZh,
+  ar: processTermAr,
+  hi: processTermHi,
 };
 
 /** The word → index term function for a language */
-export const processTermFor = (lang: string = 'en') => PROCESSORS[lang] ?? processTerm;
+export const processTermFor = (lang: string = 'en'): TermProcessor => PROCESSORS[lang] ?? processTerm;
+
+/** Every index term for a list of words, in order */
+export const termsOf = (lang: string, list: string[]) =>
+  list.flatMap((w) => processTermFor(lang)(w) ?? []);
 
 // Letters with their marks (Hindi vowel signs and Arabic vowel marks are marks, not letters) and digits
 const WORD = /[\p{L}\p{M}\p{N}]+/gu;
@@ -185,7 +249,9 @@ export function combineWords(texts: string[], lang: string = 'en'): string {
   for (const text of texts) {
     for (const w of words(text)) {
       const t = term(w);
-      if (t && !byTerm.has(t)) byTerm.set(t, w.toLowerCase());
+      // Chinese gives several terms per run of characters, so the run itself is the key
+      const key = Array.isArray(t) ? w : t;
+      if (key && !byTerm.has(key)) byTerm.set(key, w.toLowerCase());
     }
   }
   return [...byTerm.values()].join(' ');
@@ -195,10 +261,32 @@ export function combineWords(texts: string[], lang: string = 'en'): string {
 export function highlight(text: string, terms: string[], lang: string = 'en'): string {
   const processTerm = processTermFor(lang);
   const set = new Set(terms);
+  if (lang === 'zh') return highlightZh(text, set);
   return text.replace(/[\p{L}\p{M}\p{N}]+|[^\p{L}\p{M}\p{N}]+/gu, (chunk) => {
     const html = escapeHtml(chunk);
     if (!/^[\p{L}\p{M}\p{N}]/u.test(chunk)) return html;
     const t = processTerm(chunk);
-    return t && set.has(t) ? `<mark>${html}</mark>` : html;
+    return typeof t === 'string' && set.has(t) ? `<mark>${html}</mark>` : html;
   });
+}
+
+/**
+ * Chinese: mark the characters covered by a matched pair. Single characters are marked only when the query was a
+ * single character, otherwise every common character in the verse would light up.
+ */
+function highlightZh(text: string, terms: Set<string>): string {
+  const pairs = [...terms].some((t) => [...t].length === 2);
+  const chars = [...text];
+  const marked = chars.map(() => false);
+  chars.forEach((c, i) => {
+    if (pairs && i + 1 < chars.length && terms.has(c + chars[i + 1])) marked[i] = marked[i + 1] = true;
+    if (!pairs && terms.has(c)) marked[i] = true;
+  });
+  let html = '';
+  chars.forEach((c, i) => {
+    if (marked[i] && !marked[i - 1]) html += '<mark>';
+    html += escapeHtml(c);
+    if (marked[i] && !marked[i + 1]) html += '</mark>';
+  });
+  return html;
 }

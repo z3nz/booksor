@@ -1,7 +1,7 @@
 // Every menu language: book names, references, search words, menus and search quality.
 // Spanish has its own file (spanish.test.ts); the checks that cover every language are here.
 import { existsSync, readFileSync } from 'node:fs';
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { bookAliases, bookName, homeUrl, messages, UI_LANGS, uiLang, type UiLang } from '../src/i18n/index.ts';
 import { BOOKS } from '../src/lib/books.ts';
 import { findBook, formatReference, parseReference } from '../src/lib/reference.ts';
@@ -404,21 +404,21 @@ const FAMOUS: Record<Exclude<UiLang, 'en' | 'es'>, [string, string][]> = {
 describe.each(Object.entries(FAMOUS))('%s search', (lang, cases) => {
   const tr = defaultTranslationFor(lang);
   const words = `public/search/words-${lang}.json`;
-  it.skipIf(!existsSync(words)).each(cases)('“%s” finds %s', (q, want) => {
-    const rows = loadRows(words);
-    const display = new Map(loadRows(`public/search/${tr}.json`).map((r) => [verseKey(r[0], r[1], r[2]), r[3]]));
-    const h = search(indexFor(lang, rows), rows, display, q, 5, lang).hits[0];
+  const built = existsSync(words);
+  let rows: SearchRow[];
+  let display: Map<string, string>;
+  let index: ReturnType<typeof buildIndex>;
+  // Building a language's index takes a few seconds, longer on the deploy's build machine (it timed out the
+  // first search there at vitest's 5 s default), so it's built once here with room to spare.
+  beforeAll(() => {
+    if (!built) return;
+    rows = JSON.parse(readFileSync(words, 'utf8'));
+    const shown: SearchRow[] = JSON.parse(readFileSync(`public/search/${tr}.json`, 'utf8'));
+    display = new Map(shown.map((r) => [verseKey(r[0], r[1], r[2]), r[3]]));
+    index = buildIndex(rows, lang);
+  }, 120_000);
+  it.skipIf(!built).each(cases)('“%s” finds %s', (q, want) => {
+    const h = search(index, rows, display, q, 5, lang).hits[0];
     expect(h && `${bookName(h.b, lang)} ${h.c}:${h.v}`).toBe(want);
   });
 });
-
-const rowCache = new Map<string, SearchRow[]>();
-const loadRows = (file: string) => {
-  if (!rowCache.has(file)) rowCache.set(file, JSON.parse(readFileSync(file, 'utf8')));
-  return rowCache.get(file)!;
-};
-const indexCache = new Map<string, ReturnType<typeof buildIndex>>();
-const indexFor = (lang: string, rows: SearchRow[]) => {
-  if (!indexCache.has(lang)) indexCache.set(lang, buildIndex(rows, lang));
-  return indexCache.get(lang)!;
-};
